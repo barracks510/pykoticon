@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: ISO-8859-15 -*-
 
-# PyKotIcon - Windows System Tray Icon for PyKota
+# PyKotIcon - an end-user companion for PyKota
 #
 # (c) 2003-2004 Jerome Alet <alet@librelogiciel.com>
 # This program is free software; you can redistribute it and/or modify
@@ -23,12 +23,28 @@
 #
 
 from distutils.core import setup
+import sys
 import os
-import py2exe
 import glob
+try :
+    import py2exe
+except ImportError :
+    if sys.platform == "win32" :
+        sys.stderr.write("py2exe is not installed ! ABORTING.\n")
+        sys.exit(-1)
+    else :    
+        withPy2EXE = 0
+else :        
+    withPy2EXE = 1
 
-setup(
-       name="pykoticon",
-       windows=[os.path.join("bin", "pykoticon")],
-       data_files=[("icons", glob.glob(os.path.join("icons", "*.ico"))),
-                  ])
+version = "0.1"
+
+setup(name = "pykoticon", version = version,
+      license = "GNU GPL",
+      description = "an end-user companion for PyKota",
+      author = "Jerome Alet",
+      author_email = "alet@librelogiciel.com",
+      url = "http://www.librelogiciel.com/software/",
+      windows=[os.path.join("bin", "pykoticon")],
+      scripts=[os.path.join("bin", "pykoticon")],
+      data_files=[("icons", glob.glob(os.path.join("icons", "*.ico")))])
