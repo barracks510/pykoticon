@@ -36,7 +36,7 @@ if sys.platform == "win32" :
     except ImportError :    
         raise ImportError, "Mark Hammond's Win32 Extensions are missing. Please install them."
     else :    
-        iconsdir = "."
+        iconsdir = os.path.split(sys.argv[0])[0]
 else :        
     isWindows = 0
     iconsdir = "/usr/share/pykoticon"   # TODO : change this
