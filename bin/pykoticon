@@ -51,7 +51,8 @@ except ImportError :
     hasWxPython = 0
     raise ImportError, "wxPython is missing. Please install it."
     
-DUMPYKOTA_URL = "http://cgi.librelogiciel.com/cgi-bin/dumpykota.cgi"
+#DUMPYKOTA_URL = "http://cgi.librelogiciel.com/cgi-bin/dumpykota.cgi"
+DUMPYKOTA_URL = "http://servmediup.unice.fr/cgi-bin/dumpykota.cgi"
 
 def getCurrentUserName() :
     """Retrieves the current user's name."""
