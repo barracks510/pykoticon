@@ -1,0 +1,3 @@
+include README COPYING TODO NEWS CREDITS MANIFEST.in clean.sh bin/pykoticon
+recursive-include po README *.sh *.po *.mo *.pot
+recursive-include icons *.ico
