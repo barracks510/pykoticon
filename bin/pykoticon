@@ -203,42 +203,70 @@ class PyKotIconGrid(gridlib.Grid) :
     """A class for user print quota entries."""
     def __init__(self, parent, user) :
         gridlib.Grid.__init__(self, parent, -1)
-        sys.stderr.write("%s\n" % dir(self))
-        self.CreateGrid(len(user.Quotas.keys()), 4)
+        if user.LimitBy == "balance" :
+            nbcols = 3
+        else :    
+            nbcols = 4
+        self.CreateGrid(len(user.Quotas.keys()), nbcols)
         self.EnableEditing(False)
-        self.SetColLabelValue(0, _("Page Counter"))
-        self.SetColLabelValue(1, _("Soft Limit"))
-        self.SetColLabelValue(2, _("Hard Limit"))
-        self.SetColLabelValue(3, _("Date Limit"))
-        attr = gridlib.GridCellAttr()
-        attr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_RIGHT)
-        attr.SetReadOnly(True)
-        self.SetColAttr(0, attr)
-        self.SetColAttr(1, attr)
-        self.SetColAttr(2, attr)
-        attr = gridlib.GridCellAttr()
-        attr.SetAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
-        attr.SetReadOnly(True)
-        self.SetColAttr(3, attr)
-        i = 0
-        for printername in user.Quotas.keys() :
-            quota = user.Quotas[printername]
-            self.SetRowLabelValue(i, printername)
-            self.SetCellValue(i, 0, str(quota.PageCounter))
-            self.SetCellValue(i, 1, str(quota.SoftLimit))
-            self.SetCellValue(i, 2, str(quota.HardLimit))
-            self.SetCellValue(i, 3, str(quota.DateLimit))
+        if user.LimitBy == "balance" :
+            self.SetColLabelValue(0, _("Page Counter"))
+            self.SetColLabelValue(1, _("Price per Page"))
+            self.SetColLabelValue(2, _("Price per Job"))
             attr = gridlib.GridCellAttr()
+            attr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
+            attr.SetReadOnly(True)
             colour = wx.GREEN
-            if quota.SoftLimit is not None :
-                if quota.PageCounter >= quota.SoftLimit :
-                    colour = wx.RED
-            elif quota.HardLimit is not None :        
-                if quota.PageCounter >= quota.HardLimit :
-                    colour = wx.RED
+            if user.Balance <= 0.0 :
+                colour = wx.RED
             attr.SetBackgroundColour(colour)        
-            self.SetRowAttr(i, attr)
-            i += 1
+            self.SetColAttr(0, attr)
+            attr = gridlib.GridCellAttr()
+            attr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
+            attr.SetReadOnly(True)
+            self.SetColAttr(1, attr)
+            self.SetColAttr(2, attr)
+            i = 0
+            for printername in user.Printers.keys() :
+                printer = user.Printers[printername]
+                quota = user.Quotas[printername]
+                self.SetRowLabelValue(i, printername)
+                self.SetCellValue(i, 0, str(quota.PageCounter))
+                self.SetCellValue(i, 1, str(printer.PricePerPage))
+                self.SetCellValue(i, 2, str(printer.PricePerJob))
+                i += 1
+        else :    
+            self.SetColLabelValue(0, _("Page Counter"))
+            self.SetColLabelValue(1, _("Soft Limit"))
+            self.SetColLabelValue(2, _("Hard Limit"))
+            self.SetColLabelValue(3, _("Date Limit"))
+            attr = gridlib.GridCellAttr()
+            attr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
+            attr.SetReadOnly(True)
+            self.SetColAttr(0, attr)
+            attr = gridlib.GridCellAttr()
+            attr.SetAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+            attr.SetReadOnly(True)
+            self.SetColAttr(1, attr)
+            self.SetColAttr(2, attr)
+            self.SetColAttr(3, attr)
+            i = 0
+            for printername in user.Quotas.keys() :
+                quota = user.Quotas[printername]
+                self.SetRowLabelValue(i, printername)
+                self.SetCellValue(i, 0, str(quota.PageCounter))
+                self.SetCellValue(i, 1, str(quota.SoftLimit))
+                self.SetCellValue(i, 2, str(quota.HardLimit))
+                self.SetCellValue(i, 3, str(quota.DateLimit))
+                colour = wx.GREEN
+                if quota.SoftLimit is not None :
+                    if quota.PageCounter >= quota.SoftLimit :
+                        colour = wx.RED
+                elif quota.HardLimit is not None :        
+                    if quota.PageCounter >= quota.HardLimit :
+                        colour = wx.RED
+                self.SetCellBackgroundColour(i, 0, colour)        
+                i += 1
         self.AutoSize()
             
 class PyKotIcon(wxPython.wx.wxFrame):
@@ -312,18 +340,19 @@ class PyKotIcon(wxPython.wx.wxFrame):
                     self.tbicon.SetIcon(self.redicon, "PyKotIcon")
                 else :    
                     self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-                if hasattr(self, "quotasgrid") :    
-                    self.quotasgrid.Close()
-                    self.quotasgrid.Destroy()
-                    del self.quotasgrid
-                self.quotasgrid = PyKotIconGrid(self, self.User)    
+            if hasattr(self, "quotasgrid") :    
+                self.quotasgrid.Close()
+                self.quotasgrid.Destroy()
+                del self.quotasgrid
+            self.quotasgrid = PyKotIconGrid(self, self.User)    
             self.inTimer = False
         # Now we want it every 3 minutes    
         #self.chrono.Start(1000 * 60 * 3) # every 3 minutes
         self.chrono.Start(1000 * 20) # every 20 seconds
     
     def OnIconify(self, event) :
-        self.Hide()
+        #self.Hide()
+        pass
 
     def OnTaskBarActivate(self, event) :
         if self.IsIconized() :
