@@ -35,8 +35,11 @@ if sys.platform == "win32" :
         import win32api
     except ImportError :    
         raise ImportError, "Mark Hammond's Win32 Extensions are missing. Please install them."
+    else :    
+        iconsdir = "."
 else :        
     isWindows = 0
+    iconsdir = "/usr/share/pykoticon"   # TODO : change this
     import pwd
     
 try :    
@@ -284,9 +287,9 @@ class PyKotIcon(wxPython.wx.wxFrame):
                      | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
         self.tbicon = wxPython.wx.wxTaskBarIcon()
         
-        self.greenicon = wxPython.wx.wxIcon(os.path.join("..", "icons", "pykoticon-green.ico"), \
+        self.greenicon = wxPython.wx.wxIcon(os.path.join(iconsdir, "pykoticon-green.ico"), \
                                   wxPython.wx.wxBITMAP_TYPE_ICO)
-        self.redicon = wxPython.wx.wxIcon(os.path.join("..", "icons", "pykoticon-red.ico"), \
+        self.redicon = wxPython.wx.wxIcon(os.path.join(iconsdir, "pykoticon-red.ico"), \
                                   wxPython.wx.wxBITMAP_TYPE_ICO)
         
         self.SetIcon(self.greenicon)
