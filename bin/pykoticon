@@ -97,7 +97,7 @@ class UserQuota :
         
 class User :
     """A class for PyKota users."""
-    def __init__(self, username, userinfo, userquotas) :
+    def __init__(self, username, userinfo, userquotas, printers) :
         """Initialize user datas."""
         self.UserName = username
         self.LimitBy = userinfo["limitby"][0].lower()
@@ -109,15 +109,25 @@ class User :
             self.LifeTimePaid = float(userinfo["lifetimepaid"][0])
         except (ValueError, TypeError) :
             self.LifeTimePaid = 0.0
-        self.Quotas = []
+        self.Printers = {}    
+        self.Quotas = {}
         for i in range(len(userquotas["printername"])) :
             printername = userquotas["printername"][i]
+            try :
+                pindex = printers["printername"].index(printername)
+            except (ValueError, KeyError) :
+                pass
+            else :    
+                self.Printers[printername] = Printer(printername, \
+                                              printers["priceperpage"][pindex],\
+                                              printers["priceperjob"][pindex])
             pagecounter = userquotas["pagecounter"][i]
             softlimit = userquotas["softlimit"][i]
             hardlimit = userquotas["hardlimit"][i]
             datelimit = userquotas["datelimit"][i]
-            self.Quotas.append(UserQuota(printername, pagecounter, softlimit, \
-                                         hardlimit, datelimit))
+            self.Quotas[printername] = UserQuota(printername, pagecounter, \
+                                                   softlimit, hardlimit, \
+                                                              datelimit)
             
 class CGINetworkInterface :
     """A class for all network interactions."""
@@ -154,15 +164,16 @@ class CGINetworkInterface :
                 raise ValueError, _("Invalid datas retrieved from %s") % url
         return answer
         
-    def getPrinterNames(self) :
+    def getPrinters(self) :
         """Retrieve the printer's names."""
         arguments = { "report" : 1,
                       "format" : "csv",
                       "datatype" : "printers",
                     }  
-        return self.retrieveDatas(arguments, ["printername"])["printername"]
+        return self.retrieveDatas(arguments, ["printername", "priceperpage", \
+                                              "priceperjob"])
         
-    def getUserInfo(self, username) :
+    def getUser(self, username) :
         """Retrieve the user's information."""
         arguments = { "datatype" : "users",
                       "filter" : "username=%s" % username,
@@ -179,19 +190,21 @@ class CGINetworkInterface :
                                               "softlimit", "hardlimit", \
                                               "datelimit"))
                                               
-    def getUser(self, username) :
+    def getUserInfo(self, username) :
         """Retrieves the user account and quota information."""
-        info = self.getUserInfo(username)
+        info = self.getUser(username)
         if info :
             quotas = self.getUserPQuotas(username)
-            return User(username, info, quotas)
+            return User(username, info, \
+                                  self.getUserPQuotas(username), \
+                                  self.getPrinters())
     
 class PyKotIconGrid(gridlib.Grid) :    
     """A class for user print quota entries."""
-    def __init__(self, parent, quotas) :
+    def __init__(self, parent, user) :
         gridlib.Grid.__init__(self, parent, -1)
         sys.stderr.write("%s\n" % dir(self))
-        self.CreateGrid(len(quotas), 4)
+        self.CreateGrid(len(user.Quotas.keys()), 4)
         self.EnableEditing(False)
         self.SetColLabelValue(0, _("Page Counter"))
         self.SetColLabelValue(1, _("Soft Limit"))
@@ -207,23 +220,25 @@ class PyKotIconGrid(gridlib.Grid) :
         attr.SetAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
         attr.SetReadOnly(True)
         self.SetColAttr(3, attr)
-        for i in range(len(quotas)) :
-            q = quotas[i]
-            self.SetRowLabelValue(i, quotas[i].PrinterName)
-            self.SetCellValue(i, 0, str(q.PageCounter))
-            self.SetCellValue(i, 1, str(q.SoftLimit))
-            self.SetCellValue(i, 2, str(q.HardLimit))
-            self.SetCellValue(i, 3, str(q.DateLimit))
+        i = 0
+        for printername in user.Quotas.keys() :
+            quota = user.Quotas[printername]
+            self.SetRowLabelValue(i, printername)
+            self.SetCellValue(i, 0, str(quota.PageCounter))
+            self.SetCellValue(i, 1, str(quota.SoftLimit))
+            self.SetCellValue(i, 2, str(quota.HardLimit))
+            self.SetCellValue(i, 3, str(quota.DateLimit))
             attr = gridlib.GridCellAttr()
             colour = wx.GREEN
-            if q.SoftLimit is not None :
-                if q.PageCounter >= q.SoftLimit :
+            if quota.SoftLimit is not None :
+                if quota.PageCounter >= quota.SoftLimit :
                     colour = wx.RED
-            elif q.HardLimit is not None :        
-                if q.PageCounter >= q.HardLimit :
+            elif quota.HardLimit is not None :        
+                if quota.PageCounter >= quota.HardLimit :
                     colour = wx.RED
             attr.SetBackgroundColour(colour)        
             self.SetRowAttr(i, attr)
+            i += 1
         self.AutoSize()
             
 class PyKotIcon(wxPython.wx.wxFrame):
@@ -232,7 +247,8 @@ class PyKotIcon(wxPython.wx.wxFrame):
         wxPython.wx.wxFrame.__init__(self, parent, -1, \
                _("PyKota Print Quota for user %s") % getCurrentUserName(), \
                size = (460, -1), \
-               style = wxPython.wx.wxDEFAULT_FRAME_STYLE | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
+               style = wxPython.wx.wxDEFAULT_FRAME_STYLE \
+                     | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
         self.greenicon = wxPython.wx.wxIcon(os.path.join("..", "icons", "pykoticon-green.ico"), \
                                   wxPython.wx.wxBITMAP_TYPE_ICO)
         self.redicon = wxPython.wx.wxIcon(os.path.join("..", "icons", "pykoticon-red.ico"), \
@@ -274,7 +290,7 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.chrono.Stop()    
         if self.inTimer is False : # avoids re-entrance
             self.inTimer = True
-            self.User = self.networkInterface.getUser(getCurrentUserName())
+            self.User = self.networkInterface.getUserInfo(getCurrentUserName())
             if self.User.LimitBy == "balance" :
                 if self.User.Balance <= 0.0 :
                     self.tbicon.SetIcon(self.redicon, "PyKotIcon")
@@ -282,13 +298,14 @@ class PyKotIcon(wxPython.wx.wxFrame):
                     self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
             else :        
                 isRed = False
-                for q in self.User.Quotas :
-                    if q.SoftLimit is not None :
-                        if q.PageCounter >= q.SoftLimit :
+                for q in self.User.Quotas.keys() :
+                    quota = self.User.Quotas[q]
+                    if quota.SoftLimit is not None :
+                        if quota.PageCounter >= quota.SoftLimit :
                             isRed = True
                             break
-                    elif q.HardLimit is not None :        
-                        if q.PageCounter >= q.HardLimit :
+                    elif quota.HardLimit is not None :        
+                        if quota.PageCounter >= quota.HardLimit :
                             isRed = True
                             break
                 if isRed is True :
@@ -299,7 +316,7 @@ class PyKotIcon(wxPython.wx.wxFrame):
                     self.quotasgrid.Close()
                     self.quotasgrid.Destroy()
                     del self.quotasgrid
-                self.quotasgrid = PyKotIconGrid(self, self.User.Quotas)    
+                self.quotasgrid = PyKotIconGrid(self, self.User)    
             self.inTimer = False
         # Now we want it every 3 minutes    
         #self.chrono.Start(1000 * 60 * 3) # every 3 minutes
@@ -319,6 +336,10 @@ class PyKotIcon(wxPython.wx.wxFrame):
         if hasattr(self, "chrono") :
             self.chrono.Stop()
             del self.chrono
+        if hasattr(self, "quotasgrid") :
+            self.quotasgrid.Close()
+            self.quotasgrid.Destroy()
+            del self.quotasgrid
         if hasattr(self, "menu") :
             self.menu.Destroy()
             del self.menu
@@ -374,17 +395,26 @@ def test() :
     else :    
         username = getCurrentUserName()
     net = CGINetworkInterface(DUMPYKOTA_URL)
-    user = net.getUser(username)
+    user = net.getUserInfo(username)
     print "UserName : ", user.UserName
     print "LimitBy : ", user.LimitBy
     print "Balance : ", user.Balance
-    for q in user.Quotas :
-        print "\tPrinterName : ", q.PrinterName
-        print "\tPageCounter : ", q.PageCounter
-        print "\tSoftLimit : ", q.SoftLimit
-        print "\tHardLimit : ", q.HardLimit
-        print "\tDateLimit : ", q.DateLimit
+    for printername in user.Quotas.keys() :
+        quota = user.Quotas[printername]
+        print "\tPrinterName : ", printername
+        print "\tPageCounter : ", quota.PageCounter
+        print "\tSoftLimit : ", quota.SoftLimit
+        print "\tHardLimit : ", quota.HardLimit
+        print "\tDateLimit : ", quota.DateLimit
         print
+    for printername in user.Printers.keys() :
+        printer = user.Printers[printername]
+        print "\tPrinterName : ", printername
+        print "\tPrice per Page : ", printer.PricePerPage
+        print "\tPrice per Job : ", printer.PricePerJob
+        print
+        
+        
 
 if __name__ == '__main__':
     if (len(sys.argv) >= 2) and (sys.argv[1] == "--test") :
