@@ -276,14 +276,18 @@ class PyKotIcon(wxPython.wx.wxFrame):
                _("PyKota Print Quota for user %s") % getCurrentUserName(), \
                size = (460, -1), \
                style = wxPython.wx.wxDEFAULT_FRAME_STYLE \
+                     | wxPython.wx.wxSIZE_AUTO_HEIGHT \
+                     | wxPython.wx.wxSIZE_AUTO_WIDTH \
+                     | wxPython.wx.wxICONIZE \
                      | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
+        self.tbicon = wxPython.wx.wxTaskBarIcon()
+        
         self.greenicon = wxPython.wx.wxIcon(os.path.join("..", "icons", "pykoticon-green.ico"), \
                                   wxPython.wx.wxBITMAP_TYPE_ICO)
         self.redicon = wxPython.wx.wxIcon(os.path.join("..", "icons", "pykoticon-red.ico"), \
                                   wxPython.wx.wxBITMAP_TYPE_ICO)
-        self.SetIcon(self.greenicon)
         
-        self.tbicon = wxPython.wx.wxTaskBarIcon()
+        self.SetIcon(self.greenicon)
         self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
         
         wxPython.wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
@@ -321,8 +325,10 @@ class PyKotIcon(wxPython.wx.wxFrame):
             self.User = self.networkInterface.getUserInfo(getCurrentUserName())
             if self.User.LimitBy == "balance" :
                 if self.User.Balance <= 0.0 :
+                    self.SetIcon(self.redicon)
                     self.tbicon.SetIcon(self.redicon, "PyKotIcon")
                 else :    
+                    self.SetIcon(self.greenicon)
                     self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
             else :        
                 isRed = False
@@ -337,8 +343,10 @@ class PyKotIcon(wxPython.wx.wxFrame):
                             isRed = True
                             break
                 if isRed is True :
+                    self.SetIcon(self.redicon)
                     self.tbicon.SetIcon(self.redicon, "PyKotIcon")
                 else :    
+                    self.SetIcon(self.greenicon)
                     self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
             if hasattr(self, "quotasgrid") :    
                 self.quotasgrid.Close()
@@ -351,8 +359,7 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.chrono.Start(1000 * 20) # every 20 seconds
     
     def OnIconify(self, event) :
-        #self.Hide()
-        pass
+        self.Hide()
 
     def OnTaskBarActivate(self, event) :
         if self.IsIconized() :
@@ -382,9 +389,9 @@ class PyKotIcon(wxPython.wx.wxFrame):
 
     def OnTaskBarClose(self, evt) :
         self.Close()
-        wxPython.wx.wxGetApp().ProcessIdle()
+        #wxPython.wx.wxGetApp().ProcessIdle()
 
-class PyKotIconApp(wxPython.wx.wxApp):
+class PyKotIconApp(wx.PySimpleApp):
     def OnInit(self) :
         try :
             frame = PyKotIcon(None, -1)
@@ -442,8 +449,6 @@ def test() :
         print "\tPrice per Page : ", printer.PricePerPage
         print "\tPrice per Job : ", printer.PricePerJob
         print
-        
-        
 
 if __name__ == '__main__':
     if (len(sys.argv) >= 2) and (sys.argv[1] == "--test") :
