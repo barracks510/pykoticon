@@ -1,0 +1,94 @@
+#! /usr/bin/env python
+# -*- coding: ISO-8859-15 -*-
+
+# PyKota - Print Quotas for CUPS and LPRng
+#
+# (c) 2003-2004 Jerome Alet <alet@librelogiciel.com>
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+#
+# $Id: $
+#
+# $Log: $
+#
+#
+
+import sys
+import os
+import pwd
+import time
+import urllib
+import urllib2
+
+DUMPYKOTA_URL = "http://cgi.librelogiciel.com/cgi-bin/dumpykota.cgi"
+USERNAME = "jerome"
+
+def getPrinterNames() :
+    """Retrieve the printer's names."""
+    arguments = { "report" : 1,
+                  "format" : "csv",
+                  "datatype" : "printers",
+                }  
+    return retrieveDatas(arguments, ["printername"])["printername"]
+    
+def getUserInfo(username) :
+    """Retrieve the user's information."""
+    arguments = { "datatype" : "users",
+                  "filter" : "username=%s" % username,
+                }  
+    return retrieveDatas(arguments, ("limitby", "balance", "lifetimepaid"))
+    
+def getUserPQuotas(username) :
+    """Retrieve the user's print quota information."""
+    arguments = { "datatype" : "upquotas",
+                  "filter" : "username=%s" % username,
+                }  
+    return retrieveDatas(arguments, ("printername", "pagecounter", "softlimit", "datelimit"))
+    
+def retrieveDatas(args, fieldnames) :
+    """Retrieve datas from the CGI script."""
+    arguments = { "report" : 1,
+                  "format" : "csv",
+                }  
+    arguments.update(args)            
+    answer = {}
+    try :            
+        url = "%s?%s" % (DUMPYKOTA_URL, urllib.urlencode(arguments))
+        u = urllib2.urlopen(url)
+        lines = u.readlines()
+    except :    
+        sys.stderr.write("Unable to retrieve %s\n" % url)
+    else :    
+        u.close()
+        try :
+            lines = [ line.strip().split(",") for line in lines ]
+            fields = [field[1:-1] for field in lines[0]]
+            indices = [fields.index(fname) for fname in fieldnames]
+            answer = dict([ (fieldname, \
+                            [ line[fields.index(fieldname)][1:-1] for line in lines[1:] ]) \
+                            for fieldname in fieldnames ])
+        except :    
+            sys.stderr.write("Invalid datas retrieved from %s\n" % url)
+    return answer
+    
+if __name__ == "__main__" :
+    #printernames = getPrinterNames()
+    #print "List of printers : ", printernames
+    
+    userinfo = getUserInfo("jerome")
+    print "User jerome : ", userinfo
+    
+    userpquotas = getUserPQuotas("jerome")
+    print "User jerome's print quotas : ", userpquotas
+
