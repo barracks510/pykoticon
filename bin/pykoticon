@@ -23,22 +23,61 @@
 #
 
 import sys
-import os
-import pwd
-import time
 import urllib
 import urllib2
 
 DUMPYKOTA_URL = "http://cgi.librelogiciel.com/cgi-bin/dumpykota.cgi"
-USERNAME = "jerome"
 
+class UserQuota :
+    """A class for PyKota User Print Quota entries."""
+    def __init__(self, printername, pagecount, softlimit, hardlimit, datelimit):
+        """Initialize user print quota datas."""
+        self.PrinterName = printername
+        try :
+            self.PageCounter = int(pagecount)
+        except (ValueError, TypeError) :
+            self.PageCounter = 0
+        try :
+            self.SoftLimit = int(softlimit)
+        except (ValueError, TypeError) :
+            self.SoftLimit = None
+        try :
+            self.HardLimit = int(hardlimit)
+        except (ValueError, TypeError) :
+            self.HardLimit = None
+        self.DateLimit = datelimit
+        
+class User :
+    """A class for PyKota users."""
+    def __init__(self, username, userinfo, userquotas) :
+        """Initialize user datas."""
+        self.Name = username
+        self.LimitBy = userinfo["limitby"][0].lower()
+        try :
+            self.Balance = float(userinfo["balance"][0])
+        except (ValueError, TypeError) :
+            self.Balance = 0.0
+        try :
+            self.LifeTimePaid = float(userinfo["lifetimepaid"][0])
+        except (ValueError, TypeError) :
+            self.LifeTimePaid = 0.0
+        self.Quotas = []
+        for i in range(len(userquotas["printername"])) :
+            printername = userquotas["printername"][i]
+            pagecounter = userquotas["pagecounter"][i]
+            softlimit = userquotas["softlimit"][i]
+            hardlimit = userquotas["hardlimit"][i]
+            datelimit = userquotas["datelimit"][i]
+            self.Quotas.append(UserQuota(printername, pagecounter, softlimit, \
+                                         hardlimit, datelimit))
+            
 class CGINetworkInterface :
     """A class for all network interactions."""
-    def __init__(self, url, username=None, password=None) :
+    def __init__(self, cgiurl, authname=None, authpw=None) :
         """Initialize CGI connection datas."""
-        self.url = url
-        self.username = username
-        self.password = password
+        self.cgiurl = cgiurl
+        self.authname = authname
+        self.authpw = authpw
         
     def retrieveDatas(self, arguments, fieldnames) :
         """Retrieve datas from the CGI script."""
@@ -48,7 +87,7 @@ class CGINetworkInterface :
         args.update(arguments)            
         answer = {}
         try :            
-            url = "%s?%s" % (self.url, urllib.urlencode(args))
+            url = "%s?%s" % (self.cgiurl, urllib.urlencode(args))
             u = urllib2.urlopen(url)
             lines = u.readlines()
         except IOError, msg :    
@@ -60,7 +99,8 @@ class CGINetworkInterface :
                 fields = [field[1:-1] for field in lines[0]]
                 indices = [fields.index(fname) for fname in fieldnames]
                 answer = dict([ (fieldname, \
-                                  [ line[fields.index(fieldname)][1:-1] for line in lines[1:] ]) \
+                                  [ line[fields.index(fieldname)][1:-1] \
+                                    for line in lines[1:] ]) \
                                 for fieldname in fieldnames ])
             except :    
                 raise ValueError, "Invalid datas retrieved from %s" % url
@@ -86,13 +126,21 @@ class CGINetworkInterface :
         arguments = { "datatype" : "upquotas",
                       "filter" : "username=%s" % username,
                     }  
-        return self.retrieveDatas(arguments, ("printername", "pagecounter", "softlimit", "datelimit"))
+        return self.retrieveDatas(arguments, ("printername", "pagecounter", \
+                                              "softlimit", "hardlimit", "datelimit"))
+                                              
+    def getUser(self, username) :
+        """Retrieves the user account and quota information."""
+        info = self.getUserInfo(username)
+        quotas = self.getUserPQuotas(username)
+        return User(username, info, quotas)
     
 if __name__ == "__main__" :
     net = CGINetworkInterface(DUMPYKOTA_URL)
-    print "List of printers : ", net.getPrinterNames()
+    #print "List of printers : ", net.getPrinterNames()
     
-    print "User : ", net.getUserInfo("jerome")
+    #print "User : ", net.getUserInfo("jerome")
     
-    print "User print quotas : ", net.getUserPQuotas("jerome")
+    #print "User print quotas : ", net.getUserPQuotas("jerome")
+    jerome = net.getUser("jerome")
 
