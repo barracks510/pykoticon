@@ -26,15 +26,20 @@ import sys
 import os
 import urllib
 import urllib2
+import locale
+import gettext
 
-try :
-    import win32api
-    import win32net
-    import win32netcon
-    hasWindowsExtensions = 1
-except ImportError :    
-    hasWindowsExtensions = 0
-    raise ImportError, "Mark Hammond's Win32 Extensions are missing. Please install them."
+if sys.platform == "win32" :
+    isWindows = 1
+    try :
+        import win32api
+        import win32net
+        import win32netcon
+    except ImportError :    
+        raise ImportError, "Mark Hammond's Win32 Extensions are missing. Please install them."
+else :        
+    isWindows = 0
+    import pwd
     
 try :    
     import wxPython.wx
@@ -46,6 +51,30 @@ except ImportError :
     raise ImportError, "wxPython for Windows is missing. Please install it."
     
 DUMPYKOTA_URL = "http://cgi.librelogiciel.com/cgi-bin/dumpykota.cgi"
+
+def getCurrentUserName() :
+    """Retrieves the current user's name."""
+    if isWindows :
+        return win32api.GetUserName()
+    else :    
+        try :
+            return pwd.getpwuid(os.geteuid())[0]
+        except :
+            return "** Unknown **"
+        
+class Printer :
+    """A class for PyKota Printers."""
+    def __init__(self, printername, priceperpage, priceperjob):
+        """Initialize printer datas."""
+        self.PrinterName = printername
+        try :
+            self.PricePerPage = float(priceperpage)
+        except (ValueError, TypeError) :
+            self.PricePerPage = 0.0
+        try :
+            self.PricePerJob = float(priceperjob)
+        except (ValueError, TypeError) :
+            self.PricePerJob = 0.0
 
 class UserQuota :
     """A class for PyKota User Print Quota entries."""
@@ -70,7 +99,7 @@ class User :
     """A class for PyKota users."""
     def __init__(self, username, userinfo, userquotas) :
         """Initialize user datas."""
-        self.Name = username
+        self.UserName = username
         self.LimitBy = userinfo["limitby"][0].lower()
         try :
             self.Balance = float(userinfo["balance"][0])
@@ -110,7 +139,7 @@ class CGINetworkInterface :
             u = urllib2.urlopen(url)
             lines = u.readlines()
         except IOError, msg :    
-            raise IOError, "Unable to retrieve %s : %s" % (url, msg)
+            raise IOError, _("Unable to retrieve %s : %s") % (url, msg)
         else :    
             u.close()
             try :
@@ -122,7 +151,7 @@ class CGINetworkInterface :
                                     for line in lines[1:] ]) \
                                 for fieldname in fieldnames ])
             except :    
-                raise ValueError, "Invalid datas retrieved from %s" % url
+                raise ValueError, _("Invalid datas retrieved from %s") % url
         return answer
         
     def getPrinterNames(self) :
@@ -161,12 +190,13 @@ class PyKotIconGrid(gridlib.Grid) :
     """A class for user print quota entries."""
     def __init__(self, parent, quotas) :
         gridlib.Grid.__init__(self, parent, -1)
+        sys.stderr.write("%s\n" % dir(self))
         self.CreateGrid(len(quotas), 4)
         self.EnableEditing(False)
-        self.SetColLabelValue(0, "Page Counter")
-        self.SetColLabelValue(1, "Soft Limit")
-        self.SetColLabelValue(2, "Hard Limit")
-        self.SetColLabelValue(3, "Date Limit")
+        self.SetColLabelValue(0, _("Page Counter"))
+        self.SetColLabelValue(1, _("Soft Limit"))
+        self.SetColLabelValue(2, _("Hard Limit"))
+        self.SetColLabelValue(3, _("Date Limit"))
         attr = gridlib.GridCellAttr()
         attr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_RIGHT)
         attr.SetReadOnly(True)
@@ -194,13 +224,14 @@ class PyKotIconGrid(gridlib.Grid) :
                     colour = wx.RED
             attr.SetBackgroundColour(colour)        
             self.SetRowAttr(i, attr)
+        self.AutoSize()
             
 class PyKotIcon(wxPython.wx.wxFrame):
     """Main class."""
     def __init__(self, parent, id):
         wxPython.wx.wxFrame.__init__(self, parent, -1, \
-               "PyKota Print Quota for user %s" % self.getCurrentUserName(), \
-               # size=(640, 480), \
+               _("PyKota Print Quota for user %s") % getCurrentUserName(), \
+               size = (460, -1), \
                style = wxPython.wx.wxDEFAULT_FRAME_STYLE | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
         self.greenicon = wxPython.wx.wxIcon(os.path.join("..", "icons", "pykoticon-green.ico"), \
                                   wxPython.wx.wxBITMAP_TYPE_ICO)
@@ -222,8 +253,8 @@ class PyKotIcon(wxPython.wx.wxFrame):
         wxPython.wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
                                           self.OnTaskBarClose)
         self.menu = wxPython.wx.wxMenu()
-        self.menu.Append(self.TBMENU_RESTORE, "Show Print Quota")
-        self.menu.Append(self.TBMENU_CLOSE, "Quit")
+        self.menu.Append(self.TBMENU_RESTORE, _("Show Print Quota"))
+        self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
         
         wxPython.wx.EVT_CLOSE(self, self.OnClose)
         
@@ -234,12 +265,8 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.User = None
         self.networkInterface = CGINetworkInterface(DUMPYKOTA_URL)
         self.inTimer = False
-        self.chrono.Start(200) # first time in 0.25 second
+        self.chrono.Start(250) # first time in 0.25 second
 
-    def getCurrentUserName(self) :
-        """Returns the name of the current user."""
-        return win32api.GetUserName()
-        
     def OnChronoTimer(self, event) :
         """Retrieves user's data quota information."""
         # we stop it there, needed because we want to
@@ -247,7 +274,7 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.chrono.Stop()    
         if self.inTimer is False : # avoids re-entrance
             self.inTimer = True
-            self.User = self.networkInterface.getUser(self.getCurrentUserName())
+            self.User = self.networkInterface.getUser(getCurrentUserName())
             if self.User.LimitBy == "balance" :
                 if self.User.Balance <= 0.0 :
                     self.tbicon.SetIcon(self.redicon, "PyKotIcon")
@@ -268,18 +295,11 @@ class PyKotIcon(wxPython.wx.wxFrame):
                     self.tbicon.SetIcon(self.redicon, "PyKotIcon")
                 else :    
                     self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-                if not self.IsIconized() :    
-                    self.Iconize(True)
-                if self.IsShown():    
-                    self.Hide()
                 if hasattr(self, "quotasgrid") :    
+                    self.quotasgrid.Close()
                     self.quotasgrid.Destroy()
                     del self.quotasgrid
                 self.quotasgrid = PyKotIconGrid(self, self.User.Quotas)    
-                if self.IsIconized() :
-                    self.Iconize(False)
-                if not self.IsShown() :
-                    self.Show(True)
             self.inTimer = False
         # Now we want it every 3 minutes    
         #self.chrono.Start(1000 * 60 * 3) # every 3 minutes
@@ -326,6 +346,14 @@ class PyKotIconApp(wxPython.wx.wxApp):
         
 def main():
     """Program's entry point."""
+    try :
+        locale.setlocale(locale.LC_ALL, "")
+    except (locale.Error, IOError) :
+        sys.stderr.write("Problem while setting locale.\n")
+    try :
+        gettext.install("pykoticon")
+    except :
+        gettext.NullTranslations().install()
     app = PyKotIconApp()
     app.MainLoop()
     
@@ -344,10 +372,10 @@ def test() :
     if len(sys.argv) >= 3 :
         username = sys.argv[2] 
     else :    
-        username = win32api.GetUserName()
+        username = getCurrentUserName()
     net = CGINetworkInterface(DUMPYKOTA_URL)
     user = net.getUser(username)
-    print "UserName : ", user.Name
+    print "UserName : ", user.UserName
     print "LimitBy : ", user.LimitBy
     print "Balance : ", user.Balance
     for q in user.Quotas :
