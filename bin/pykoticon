@@ -380,21 +380,11 @@ class PyKotIcon(wxPython.wx.wxFrame):
                         self.SetIcon(self.greenicon)
                         if self.tbicon is not None :
                             self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-                isiconized = self.IsIconized()            
-                if isiconized is False :
-                    self.Iconize(True)
-                isshown = self.IsShown()    
-                if isshown is True :
-                    self.Hide()
                 if hasattr(self, "quotasgrid") :    
                     self.quotasgrid.Close()
                     self.quotasgrid.Destroy()
                     del self.quotasgrid
                 self.quotasgrid = PyKotIconGrid(self, self.User)    
-                if isiconized is False :
-                    self.Iconize(False)
-                if isshown is True :    
-                    self.Show(True)
                 self.Refresh()
             self.inTimer = False
         # Now we want it every 3 minutes    
