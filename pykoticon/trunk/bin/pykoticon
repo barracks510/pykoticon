@@ -51,9 +51,6 @@ except ImportError :
     hasWxPython = 0
     raise ImportError, "wxPython is missing. Please install it."
     
-#DUMPYKOTA_URL = "http://cgi.librelogiciel.com/cgi-bin/dumpykota.cgi"
-DUMPYKOTA_URL = "http://servmediup.unice.fr/cgi-bin/dumpykota.cgi"
-
 def getCurrentUserName() :
     """Retrieves the current user's name."""
     if isWindows :
@@ -136,7 +133,7 @@ class CGINetworkInterface :
     def __init__(self, cgiurl, authname=None, authpw=None) :
         """Initialize CGI connection datas."""
         self.cgiurl = cgiurl
-        self.authname = authname
+        self.authname = authname        # TODO : at least do basic auth
         self.authpw = authpw
         
     def retrieveDatas(self, arguments, fieldnames) :
@@ -320,8 +317,25 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.chrono = wxPython.wx.wxTimer(self, self.TBTIMER)
         wxPython.wx.EVT_TIMER(self, self.TBTIMER, self.OnChronoTimer)
         
+    def postInit(self, configFile) :    
+        """Loads the configuration file and starts processing."""
         self.User = None
-        self.networkInterface = CGINetworkInterface(DUMPYKOTA_URL)
+        url = None
+        try :
+            # try a file on disk first
+            u = open(configFile)
+        except IOError :    
+            try :
+                # then try through the web
+                u = urllib2.urlopen(configFile)
+            except (ValueError, IOError), msg :    
+                raise IOError, _("Impossible to read configuration file %s : %s") % (configFile, msg)
+        url = u.readline().strip()
+        u.close()
+        
+        if not url :
+            raise ValueError, _("Configuration file %s is incorrect.") % configFile
+        self.networkInterface = CGINetworkInterface(url)
         self.inTimer = False
         self.chrono.Start(250) # first time in 0.25 second
 
@@ -332,41 +346,56 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.chrono.Stop()    
         if self.inTimer is False : # avoids re-entrance
             self.inTimer = True
-            self.User = self.networkInterface.getUserInfo(getCurrentUserName())
-            if self.User.LimitBy == "balance" :
-                if self.User.Balance <= 0.0 :
-                    self.SetIcon(self.redicon)
-                    if self.tbicon is not None :
-                        self.tbicon.SetIcon(self.redicon, "PyKotIcon")
-                else :    
-                    self.SetIcon(self.greenicon)
-                    if self.tbicon is not None :
-                        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-            else :        
-                isRed = False
-                for q in self.User.Quotas.keys() :
-                    quota = self.User.Quotas[q]
-                    if quota.SoftLimit is not None :
-                        if quota.PageCounter >= quota.SoftLimit :
-                            isRed = True
-                            break
-                    elif quota.HardLimit is not None :        
-                        if quota.PageCounter >= quota.HardLimit :
-                            isRed = True
-                            break
-                if isRed is True :
-                    self.SetIcon(self.redicon)
-                    if self.tbicon is not None :
-                        self.tbicon.SetIcon(self.redicon, "PyKotIcon")
-                else :    
-                    self.SetIcon(self.greenicon)
-                    if self.tbicon is not None :
-                        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-            if hasattr(self, "quotasgrid") :    
-                self.quotasgrid.Close()
-                self.quotasgrid.Destroy()
-                del self.quotasgrid
-            self.quotasgrid = PyKotIconGrid(self, self.User)    
+            try :
+                self.User = self.networkInterface.getUserInfo(getCurrentUserName())
+            except IOError, msg :    
+                sys.stderr.write("ERROR : %s\n" % msg)
+            else :
+                if self.User.LimitBy == "balance" :
+                    if self.User.Balance <= 0.0 :
+                        self.SetIcon(self.redicon)
+                        if self.tbicon is not None :
+                            self.tbicon.SetIcon(self.redicon, "PyKotIcon")
+                    else :    
+                        self.SetIcon(self.greenicon)
+                        if self.tbicon is not None :
+                            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+                else :        
+                    isRed = False
+                    for q in self.User.Quotas.keys() :
+                        quota = self.User.Quotas[q]
+                        if quota.SoftLimit is not None :
+                            if quota.PageCounter >= quota.SoftLimit :
+                                isRed = True
+                                break
+                        elif quota.HardLimit is not None :        
+                            if quota.PageCounter >= quota.HardLimit :
+                                isRed = True
+                                break
+                    if isRed is True :
+                        self.SetIcon(self.redicon)
+                        if self.tbicon is not None :
+                            self.tbicon.SetIcon(self.redicon, "PyKotIcon")
+                    else :    
+                        self.SetIcon(self.greenicon)
+                        if self.tbicon is not None :
+                            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+                isiconized = self.IsIconized()            
+                if isiconized is False :
+                    self.Iconize(True)
+                isshown = self.IsShown()    
+                if isshown is True :
+                    self.Hide()
+                if hasattr(self, "quotasgrid") :    
+                    self.quotasgrid.Close()
+                    self.quotasgrid.Destroy()
+                    del self.quotasgrid
+                self.quotasgrid = PyKotIconGrid(self, self.User)    
+                if isiconized is False :
+                    self.Iconize(False)
+                if isshown is True :    
+                    self.Show(True)
+                self.Refresh()
             self.inTimer = False
         # Now we want it every 3 minutes    
         #self.chrono.Start(1000 * 60 * 3) # every 3 minutes
@@ -407,14 +436,17 @@ class PyKotIcon(wxPython.wx.wxFrame):
 class PyKotIconApp(wx.PySimpleApp):
     def OnInit(self) :
         try :
-            frame = PyKotIcon(None, -1)
+            self.frame = PyKotIcon(None, -1)
         except :    
             crashed()
-        else :    
-            frame.Show(True)
         return True
         
-def main():
+    def postInit(self, configFile) :    
+        """Continues processing."""
+        self.frame.postInit(configFile)
+        self.frame.Show(True)
+        
+def main(conffile):
     """Program's entry point."""
     try :
         locale.setlocale(locale.LC_ALL, "")
@@ -425,6 +457,7 @@ def main():
     except :
         gettext.NullTranslations().install()
     app = PyKotIconApp()
+    app.postInit(conffile)
     app.MainLoop()
     
 def crashed() :    
@@ -437,35 +470,43 @@ def crashed() :
     sys.stderr.write(msg)
     sys.stderr.flush()
     
-def test() :
-    """Runs in test mode (console)."""
-    if len(sys.argv) >= 3 :
-        username = sys.argv[2] 
-    else :    
-        username = getCurrentUserName()
-    net = CGINetworkInterface(DUMPYKOTA_URL)
-    user = net.getUserInfo(username)
-    print "UserName : ", user.UserName
-    print "LimitBy : ", user.LimitBy
-    print "Balance : ", user.Balance
-    for printername in user.Quotas.keys() :
-        quota = user.Quotas[printername]
-        print "\tPrinterName : ", printername
-        print "\tPageCounter : ", quota.PageCounter
-        print "\tSoftLimit : ", quota.SoftLimit
-        print "\tHardLimit : ", quota.HardLimit
-        print "\tDateLimit : ", quota.DateLimit
-        print
-    for printername in user.Printers.keys() :
-        printer = user.Printers[printername]
-        print "\tPrinterName : ", printername
-        print "\tPrice per Page : ", printer.PricePerPage
-        print "\tPrice per Job : ", printer.PricePerJob
-        print
+# def test() :
+#     """Runs in test mode (console)."""
+#     print "Configuration file is ignored."
+#     if len(sys.argv) >= 3 :
+#         username = sys.argv[2] 
+#     else :    
+#         username = getCurrentUserName()
+#     net = CGINetworkInterface(DUMPYKOTA_URL)
+#     user = net.getUserInfo(username)
+#     print "UserName : ", user.UserName
+#     print "LimitBy : ", user.LimitBy
+#     print "Balance : ", user.Balance
+#     for printername in user.Quotas.keys() :
+#         quota = user.Quotas[printername]
+#         print "\tPrinterName : ", printername
+#         print "\tPageCounter : ", quota.PageCounter
+#         print "\tSoftLimit : ", quota.SoftLimit
+#         print "\tHardLimit : ", quota.HardLimit
+#         print "\tDateLimit : ", quota.DateLimit
+#         print
+#     for printername in user.Printers.keys() :
+#         printer = user.Printers[printername]
+#         print "\tPrinterName : ", printername
+#         print "\tPrice per Page : ", printer.PricePerPage
+#         print "\tPrice per Job : ", printer.PricePerJob
+#         print
 
 if __name__ == '__main__':
-    if (len(sys.argv) >= 2) and (sys.argv[1] == "--test") :
-        test()
+    if len(sys.argv) >= 2 :
+        arg = sys.argv[1]
+        if arg in ("-v", "--version") :    
+            print "0.1"
+        elif arg in ("-h", "--help") :    
+            print "usage : pykoticon configuration_file"
+        #elif arg == "--test" :
+        #    test()
+        else :
+            main(arg)
     else :    
-        main()
-    
+        main("pykoticon.conf")
