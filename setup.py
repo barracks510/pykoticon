@@ -33,8 +33,10 @@ except ImportError :
         sys.stderr.write("py2exe is not installed ! ABORTING.\n")
         sys.exit(-1)
     else :    
+        directory = os.sep.join(["share", "pykoticon"])
         withPy2EXE = 0
 else :        
+    directory = "."
     withPy2EXE = 1
 
 version = "0.1"
@@ -47,4 +49,4 @@ setup(name = "pykoticon", version = version,
       url = "http://www.librelogiciel.com/software/",
       windows=[os.path.join("bin", "pykoticon")],
       scripts=[os.path.join("bin", "pykoticon")],
-      data_files=[("icons", glob.glob(os.path.join("icons", "*.ico")))])
+      data_files=[(directory, glob.glob(os.path.join("icons", "*.ico")))])
