@@ -33,8 +33,16 @@ try :
     hasWindowsExtensions = 1
 except ImportError :    
     hasWindowsExtensions = 0
+    raise ImportError, "Mark Hammond's Win32 Extensions are missing. Please install them."
     
-
+try :    
+    import wxPython.wx
+    import wx
+    hasWxPython = 1
+except ImportError :    
+    hasWxPython = 0
+    raise ImportError, "wxPython for Windows is missing. Please install it."
+    
 DUMPYKOTA_URL = "http://cgi.librelogiciel.com/cgi-bin/dumpykota.cgi"
 
 class UserQuota :
@@ -128,7 +136,8 @@ class CGINetworkInterface :
         arguments = { "datatype" : "users",
                       "filter" : "username=%s" % username,
                     }  
-        return self.retrieveDatas(arguments, ("limitby", "balance", "lifetimepaid"))
+        return self.retrieveDatas(arguments, ("limitby", "balance", \
+                                                         "lifetimepaid"))
         
     def getUserPQuotas(self, username) :
         """Retrieve the user's print quota information."""
@@ -136,7 +145,8 @@ class CGINetworkInterface :
                       "filter" : "username=%s" % username,
                     }  
         return self.retrieveDatas(arguments, ("printername", "pagecounter", \
-                                              "softlimit", "hardlimit", "datelimit"))
+                                              "softlimit", "hardlimit", \
+                                              "datelimit"))
                                               
     def getUser(self, username) :
         """Retrieves the user account and quota information."""
@@ -146,21 +156,98 @@ class CGINetworkInterface :
     
 def getWindowsUserName() :    
     """Retrieves the current user's name under MS Windows."""
-    dc = win32net.NetServerEnum(None, 100, win32netcon.SV_TYPE_DOMAIN_CTRL)
-    user = win32api.GetUserName()
-    if dc[0] :
-        dcname = dc[0][0]['name']
-        return win32net.NetUserGetInfo("\\\\" + dcname, user, 1)
-    else:
-        return win32net.NetUserGetInfo(None, user, 1)
+    return win32api.GetUserName()
     
-if __name__ == "__main__" :
-    net = CGINetworkInterface(DUMPYKOTA_URL)
-    #print "List of printers : ", net.getPrinterNames()
-    
-    #print "User : ", net.getUserInfo("jerome")
-    
-    #print "User print quotas : ", net.getUserPQuotas("jerome")
-    #jerome = net.getUser("jerome")
-    print getWindowsUserName()
+class PyKotIcon(wxPython.wx.wxFrame):
+    def __init__(self, parent, id, title):
+        wxPython.wx.wxFrame.__init__(self, parent, -1, title, size=(800, 600), \
+                   style = wxPython.wx.wxDEFAULT_FRAME_STYLE | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
+        icon = wxPython.wx.wxIcon('pykoticon.ico', \
+                                  wxPython.wx.wxBITMAP_TYPE_ICO)
+        self.SetIcon(icon)
+        
+        self.tbicon = wxPython.wx.wxTaskBarIcon()
+        self.tbicon.SetIcon(icon, "PyKotIcon")
+        wxPython.wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
+        wxPython.wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
+        wxPython.wx.EVT_ICONIZE(self, self.OnIconify)
+        
+        self.TBMENU_RESTORE = wx.NewId()
+        self.TBMENU_CLOSE = wx.NewId()
+        wxPython.wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
+                                          self.OnTaskBarActivate)
+        wxPython.wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
+                                          self.OnTaskBarClose)
+        self.menu = wxPython.wx.wxMenu()
+        self.menu.Append(self.TBMENU_RESTORE, "Show Print Quota")
+        self.menu.Append(self.TBMENU_CLOSE, "Quit")
 
+    def OnIconify(self, evt):
+        self.Hide()
+
+    def OnTaskBarActivate(self, event):
+        if self.IsIconized():
+            self.Iconize(False)
+        if not self.IsShown():
+            self.Show(True)
+        self.Raise()
+
+    def OnCloseWindow(self, event):
+        if hasattr(self, "menu") :
+            menu.Destroy()
+            del self.menu
+        if hasattr(self, "tbicon"):
+            self.tbicon.Destroy()
+            del self.tbicon
+        self.Destroy()
+
+    def OnTaskBarMenu(self, evt):
+        self.tbicon.PopupMenu(self.menu)
+
+    def OnTaskBarClose(self, evt):
+        self.Close()
+        wxPython.wx.wxGetApp().ProcessIdle()
+
+class PyKotIconApp(wxPython.wx.wxApp):
+    def OnInit(self) :
+        frame = PyKotIcon(None, -1, "PyKota Print Quota Manager")
+        frame.Show(True)
+        return True
+        
+def crashed() :    
+    """Minimal crash method."""
+    import traceback
+    lines = []
+    for line in traceback.format_exception(*sys.exc_info()) :
+        lines.extend([l for l in line.split("\n") if l])
+    msg = "ERROR: ".join(["%s\n" % l for l in (["ERROR: PyKotIcon"] + lines)])
+    sys.stderr.write(msg)
+    sys.stderr.flush()
+    
+def main():
+    """Program's entry point."""
+    app = PyKotIconApp()
+    app.MainLoop()
+    
+def test() :
+    """Runs in test mode (console)."""
+    username = getWindowsUserName()
+    net = CGINetworkInterface(DUMPYKOTA_URL)
+    user = net.getUser(username)
+    print "UserName : ", user.Name
+    print "LimitBy : ", user.LimitBy
+    print "Balance : ", user.Balance
+    for q in user.Quotas :
+        print "\tPrinterName : ", q.PrinterName
+        print "\tPageCounter : ", q.PageCounter
+        print "\tSoftLimit : ", q.SoftLimit
+        print "\tHardLimit : ", q.HardLimit
+        print "\tDateLimit : ", q.DateLimit
+        print
+
+if __name__ == '__main__':
+    if (len(sys.argv) == 2) and (sys.argv[1] == "--test") :
+        test()
+    else :    
+        main()
+    
