@@ -33,8 +33,6 @@ if sys.platform == "win32" :
     isWindows = 1
     try :
         import win32api
-        import win32net
-        import win32netcon
     except ImportError :    
         raise ImportError, "Mark Hammond's Win32 Extensions are missing. Please install them."
 else :        
@@ -48,7 +46,7 @@ try :
     hasWxPython = 1
 except ImportError :    
     hasWxPython = 0
-    raise ImportError, "wxPython for Windows is missing. Please install it."
+    raise ImportError, "wxPython is missing. Please install it."
     
 DUMPYKOTA_URL = "http://cgi.librelogiciel.com/cgi-bin/dumpykota.cgi"
 
@@ -203,11 +201,12 @@ class PyKotIconGrid(gridlib.Grid) :
     """A class for user print quota entries."""
     def __init__(self, parent, user) :
         gridlib.Grid.__init__(self, parent, -1)
+        nbrows = len(user.Quotas.keys())
+        nbcols = 4
         if user.LimitBy == "balance" :
-            nbcols = 3
-        else :    
-            nbcols = 4
-        self.CreateGrid(len(user.Quotas.keys()), nbcols)
+            nbrows += 1
+            nbcols -= 1
+        self.CreateGrid(nbrows, nbcols)
         self.EnableEditing(False)
         if user.LimitBy == "balance" :
             self.SetColLabelValue(0, _("Page Counter"))
@@ -235,6 +234,9 @@ class PyKotIconGrid(gridlib.Grid) :
                 self.SetCellValue(i, 1, str(printer.PricePerPage))
                 self.SetCellValue(i, 2, str(printer.PricePerJob))
                 i += 1
+            self.SetRowLabelValue(i, "")
+            self.SetCellValue(i, 0, _("CREDITS :") + (" %.2f" % user.Balance))
+            self.SetCellAlignment(i, 0, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
         else :    
             self.SetColLabelValue(0, _("Page Counter"))
             self.SetColLabelValue(1, _("Soft Limit"))
