@@ -29,6 +29,56 @@ It's icon represents a green dollar sign when the user is still allowed
 to print, and a red dollar sign when he is forbidden to print on at
 least one printer.
 
+When the user clicks (or double-clicks, depending on the client operating
+system) on the icon, a table is displayed showing how many pages the
+user has printed on each printer, as well as if he can still print or not,
+and if is PyKota account is limited by a number of credits, the number
+of credits remaining in his account is displayed.
+
+INSTALLATION :
+--------------
+
+  1 - On a web server :
+  
+      The first thing to do is to configure a web server to serve
+      PyKota's dumpykota.cgi CGI script. The best place to do so
+      is on the print server itself, but for performance reasons
+      you may prefer installing it elsewhere.
+      
+      When installing, you have to ensure that the dumpykota.cgi
+      script will be able to read PyKota's configuration and to
+      access to PyKota's database, whatever it is, as a PyKota
+      administrator. Please refer to PyKota's documentaton for
+      details on how to do this.
+      
+      You can protect access to this CGI script with a username
+      and password if you want. Please refer to your web server's
+      documentation for details on how to do this.
+      
+  2 - On each client :
+  
+      Execute (double-click) on PyKotIcon's installation program, 
+      and the software will install itself onto the local hard disk.
+      
+      The installation procedure will ask you for the full URL to
+      dumpykota.cgi which should be installed and working on a
+      web server, accessible from the current computer. For example
+      enter :
+      
+        http://printserver.example.com/cgi-bin/dumpykota.cgi
+        
+      Then the insallation procedure will ask you to enter an optional
+      username and password, in the case the access to dumpykota.cgi
+      is protected. Just leave the fields blank if access is unrestricted,
+      else type in the correct username and password.
+      
+  3 - You can now execute the pykoticon software. A good place to put
+      it under MS Windows is in the Startup folder, or in a netlogon
+      script. Under GNU/Linux and similar system, you can put a
+      command line to pykoticon in your ~/.Xsession file or configure
+      your desktop environment to automatically start it when opening
+      the session.
+      
 ====================================================================
     
 Please e-mail bugs to the PyKota mailing list at : pykota@librelogiciel.com
