@@ -274,6 +274,7 @@ class PyKotIconGrid(gridlib.Grid) :
                 self.SetCellBackgroundColour(i, 0, colour)        
                 i += 1
         self.AutoSize()
+        self.Refresh()
             
 class PyKotIcon(wxPython.wx.wxFrame):
     """Main class."""
@@ -402,7 +403,6 @@ class PyKotIcon(wxPython.wx.wxFrame):
 
     def OnTaskBarClose(self, evt) :
         self.Close()
-        #wxPython.wx.wxGetApp().ProcessIdle()
 
 class PyKotIconApp(wx.PySimpleApp):
     def OnInit(self) :
