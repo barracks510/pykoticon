@@ -23,6 +23,7 @@
 #
 
 import sys
+import os
 import urllib
 import urllib2
 
@@ -38,6 +39,7 @@ except ImportError :
 try :    
     import wxPython.wx
     import wx
+    import wx.grid as gridlib
     hasWxPython = 1
 except ImportError :    
     hasWxPython = 0
@@ -155,16 +157,60 @@ class CGINetworkInterface :
             quotas = self.getUserPQuotas(username)
             return User(username, info, quotas)
     
+class PyKotIconGrid(gridlib.Grid) :    
+    """A class for user print quota entries."""
+    def __init__(self, parent, quotas) :
+        gridlib.Grid.__init__(self, parent, -1)
+        self.CreateGrid(len(quotas), 4)
+        self.EnableEditing(False)
+        self.SetColLabelValue(0, "Page Counter")
+        self.SetColLabelValue(1, "Soft Limit")
+        self.SetColLabelValue(2, "Hard Limit")
+        self.SetColLabelValue(3, "Date Limit")
+        attr = gridlib.GridCellAttr()
+        attr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_RIGHT)
+        attr.SetReadOnly(True)
+        self.SetColAttr(0, attr)
+        self.SetColAttr(1, attr)
+        self.SetColAttr(2, attr)
+        attr = gridlib.GridCellAttr()
+        attr.SetAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+        attr.SetReadOnly(True)
+        self.SetColAttr(3, attr)
+        for i in range(len(quotas)) :
+            q = quotas[i]
+            self.SetRowLabelValue(i, quotas[i].PrinterName)
+            self.SetCellValue(i, 0, str(q.PageCounter))
+            self.SetCellValue(i, 1, str(q.SoftLimit))
+            self.SetCellValue(i, 2, str(q.HardLimit))
+            self.SetCellValue(i, 3, str(q.DateLimit))
+            attr = gridlib.GridCellAttr()
+            colour = wx.GREEN
+            if q.SoftLimit is not None :
+                if q.PageCounter >= q.SoftLimit :
+                    colour = wx.RED
+            elif q.HardLimit is not None :        
+                if q.PageCounter >= q.HardLimit :
+                    colour = wx.RED
+            attr.SetBackgroundColour(colour)        
+            self.SetRowAttr(i, attr)
+            
 class PyKotIcon(wxPython.wx.wxFrame):
-    def __init__(self, parent, id, title):
-        wxPython.wx.wxFrame.__init__(self, parent, -1, title, size=(800, 600), \
-                   style = wxPython.wx.wxDEFAULT_FRAME_STYLE | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
-        icon = wxPython.wx.wxIcon('pykoticon.ico', \
+    """Main class."""
+    def __init__(self, parent, id):
+        wxPython.wx.wxFrame.__init__(self, parent, -1, \
+               "PyKota Print Quota for user %s" % self.getCurrentUserName(), \
+               # size=(640, 480), \
+               style = wxPython.wx.wxDEFAULT_FRAME_STYLE | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
+        self.greenicon = wxPython.wx.wxIcon(os.path.join("..", "icons", "pykoticon-green.ico"), \
                                   wxPython.wx.wxBITMAP_TYPE_ICO)
-        self.SetIcon(icon)
+        self.redicon = wxPython.wx.wxIcon(os.path.join("..", "icons", "pykoticon-red.ico"), \
+                                  wxPython.wx.wxBITMAP_TYPE_ICO)
+        self.SetIcon(self.greenicon)
         
         self.tbicon = wxPython.wx.wxTaskBarIcon()
-        self.tbicon.SetIcon(icon, "PyKotIcon")
+        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+        
         wxPython.wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
         wxPython.wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
         wxPython.wx.EVT_ICONIZE(self, self.OnIconify)
@@ -180,13 +226,13 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.menu.Append(self.TBMENU_CLOSE, "Quit")
         
         self.TBTIMER = wx.NewId()
-        self.chrono = wx.wxTimer(self, self.TBTIMER)
-        EVT_TIMER(self, self.TBTIMER, self.OnChronoTimer)
+        self.chrono = wxPython.wx.wxTimer(self, self.TBTIMER)
+        wxPython.wx.EVT_TIMER(self, self.TBTIMER, self.OnChronoTimer)
         
         self.User = None
         self.networkInterface = CGINetworkInterface(DUMPYKOTA_URL)
-        self.inTimer = 0
-        self.chrono.Start(1000 * 60 * 3) # every 3 minutes
+        self.inTimer = False
+        self.chrono.Start(200) # first time in 0.25 second
 
     def getCurrentUserName(self) :
         """Returns the name of the current user."""
@@ -194,10 +240,39 @@ class PyKotIcon(wxPython.wx.wxFrame):
         
     def OnChronoTimer(self, event) :
         """Retrieves user's data quota information."""
-        if not self.inTimer : # avoids re-entrance
-            self.inTimer = 1
+        # we stop it there, needed because we want to
+        # change the delay the first time.
+        self.chrono.Stop()    
+        if self.inTimer is False : # avoids re-entrance
+            self.inTimer = True
             self.User = self.networkInterface.getUser(self.getCurrentUserName())
-            self.inTimer = 0
+            if self.User.LimitBy == "balance" :
+                if self.User.Balance <= 0.0 :
+                    self.tbicon.SetIcon(self.redicon, "PyKotIcon")
+                else :    
+                    self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+            else :        
+                isRed = False
+                for q in self.User.Quotas :
+                    if q.SoftLimit is not None :
+                        if q.PageCounter >= q.SoftLimit :
+                            isRed = True
+                            break
+                    elif q.HardLimit is not None :        
+                        if q.PageCounter >= q.HardLimit :
+                            isRed = True
+                            break
+                if isRed is True :
+                    self.tbicon.SetIcon(self.redicon, "PyKotIcon")
+                else :    
+                    self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+                if hasattr(self, "quotasgrid") :    
+                    self.quotasgrid.Destroy()
+                    del self.quotasgrid
+                self.quotasgrid = PyKotIconGrid(self, self.User.Quotas)    
+            self.inTimer = False
+        # Now we want it every 3 minutes    
+        self.chrono.Start(1000 * 60 * 3) # every 3 minutes
     
     def OnIconify(self, event) :
         self.Hide()
@@ -230,10 +305,19 @@ class PyKotIcon(wxPython.wx.wxFrame):
 
 class PyKotIconApp(wxPython.wx.wxApp):
     def OnInit(self) :
-        frame = PyKotIcon(None, -1, "PyKota Print Quota Manager")
-        frame.Show(True)
+        try :
+            frame = PyKotIcon(None, -1)
+        except :    
+            crashed()
+        else :    
+            frame.Show(True)
         return True
         
+def main():
+    """Program's entry point."""
+    app = PyKotIconApp()
+    app.MainLoop()
+    
 def crashed() :    
     """Minimal crash method."""
     import traceback
@@ -243,11 +327,6 @@ def crashed() :
     msg = "ERROR: ".join(["%s\n" % l for l in (["ERROR: PyKotIcon"] + lines)])
     sys.stderr.write(msg)
     sys.stderr.flush()
-    
-def main():
-    """Program's entry point."""
-    app = PyKotIconApp()
-    app.MainLoop()
     
 def test() :
     """Runs in test mode (console)."""
