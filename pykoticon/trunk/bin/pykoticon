@@ -488,7 +488,7 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2 :
         arg = sys.argv[1]
         if arg in ("-v", "--version") :    
-            print "0.1"
+            print "0.2"
         elif arg in ("-h", "--help") :    
             print "usage : pykoticon configuration_file"
         #elif arg == "--test" :
