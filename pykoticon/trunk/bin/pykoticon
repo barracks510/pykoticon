@@ -286,7 +286,10 @@ class PyKotIcon(wxPython.wx.wxFrame):
                      | wxPython.wx.wxSIZE_AUTO_WIDTH \
                      | wxPython.wx.wxICONIZE \
                      | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
-        self.tbicon = wxPython.wx.wxTaskBarIcon()
+        try :             
+            self.tbicon = wxPython.wx.wxTaskBarIcon()
+        except AttributeError :    
+            self.tbicon = None # No taskbar icon facility, old wxWidgets maybe
         
         self.greenicon = wxPython.wx.wxIcon(os.path.join(iconsdir, "pykoticon-green.ico"), \
                                   wxPython.wx.wxBITMAP_TYPE_ICO)
@@ -294,22 +297,22 @@ class PyKotIcon(wxPython.wx.wxFrame):
                                   wxPython.wx.wxBITMAP_TYPE_ICO)
         
         self.SetIcon(self.greenicon)
-        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+        if self.tbicon is not None :
+            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+            wxPython.wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
+            wxPython.wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
         
-        wxPython.wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
-        wxPython.wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
+            self.TBMENU_RESTORE = wx.NewId()
+            self.TBMENU_CLOSE = wx.NewId()
+            wxPython.wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
+                                              self.OnTaskBarActivate)
+            wxPython.wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
+                                              self.OnTaskBarClose)
+            self.menu = wxPython.wx.wxMenu()
+            self.menu.Append(self.TBMENU_RESTORE, _("Show Print Quota"))
+            self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
+        
         wxPython.wx.EVT_ICONIZE(self, self.OnIconify)
-        
-        self.TBMENU_RESTORE = wx.NewId()
-        self.TBMENU_CLOSE = wx.NewId()
-        wxPython.wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
-                                          self.OnTaskBarActivate)
-        wxPython.wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
-                                          self.OnTaskBarClose)
-        self.menu = wxPython.wx.wxMenu()
-        self.menu.Append(self.TBMENU_RESTORE, _("Show Print Quota"))
-        self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
-        
         wxPython.wx.EVT_CLOSE(self, self.OnClose)
         
         self.TBTIMER = wx.NewId()
@@ -332,10 +335,12 @@ class PyKotIcon(wxPython.wx.wxFrame):
             if self.User.LimitBy == "balance" :
                 if self.User.Balance <= 0.0 :
                     self.SetIcon(self.redicon)
-                    self.tbicon.SetIcon(self.redicon, "PyKotIcon")
+                    if self.tbicon is not None :
+                        self.tbicon.SetIcon(self.redicon, "PyKotIcon")
                 else :    
                     self.SetIcon(self.greenicon)
-                    self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+                    if self.tbicon is not None :
+                        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
             else :        
                 isRed = False
                 for q in self.User.Quotas.keys() :
@@ -350,10 +355,12 @@ class PyKotIcon(wxPython.wx.wxFrame):
                             break
                 if isRed is True :
                     self.SetIcon(self.redicon)
-                    self.tbicon.SetIcon(self.redicon, "PyKotIcon")
+                    if self.tbicon is not None :
+                        self.tbicon.SetIcon(self.redicon, "PyKotIcon")
                 else :    
                     self.SetIcon(self.greenicon)
-                    self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+                    if self.tbicon is not None :
+                        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
             if hasattr(self, "quotasgrid") :    
                 self.quotasgrid.Close()
                 self.quotasgrid.Destroy()
