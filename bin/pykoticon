@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: ISO-8859-15 -*-
 
-# PyKota - Print Quotas for CUPS and LPRng
+# PyKotIcon - Windows System Tray Icon for PyKota
 #
 # (c) 2003-2004 Jerome Alet <alet@librelogiciel.com>
 # This program is free software; you can redistribute it and/or modify
