@@ -225,6 +225,8 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.menu.Append(self.TBMENU_RESTORE, "Show Print Quota")
         self.menu.Append(self.TBMENU_CLOSE, "Quit")
         
+        wxPython.wx.EVT_CLOSE(self, self.OnClose)
+        
         self.TBTIMER = wx.NewId()
         self.chrono = wxPython.wx.wxTimer(self, self.TBTIMER)
         wxPython.wx.EVT_TIMER(self, self.TBTIMER, self.OnChronoTimer)
@@ -266,13 +268,22 @@ class PyKotIcon(wxPython.wx.wxFrame):
                     self.tbicon.SetIcon(self.redicon, "PyKotIcon")
                 else :    
                     self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+                if not self.IsIconized() :    
+                    self.Iconize(True)
+                if self.IsShown():    
+                    self.Hide()
                 if hasattr(self, "quotasgrid") :    
                     self.quotasgrid.Destroy()
                     del self.quotasgrid
                 self.quotasgrid = PyKotIconGrid(self, self.User.Quotas)    
+                if self.IsIconized() :
+                    self.Iconize(False)
+                if not self.IsShown() :
+                    self.Show(True)
             self.inTimer = False
         # Now we want it every 3 minutes    
-        self.chrono.Start(1000 * 60 * 3) # every 3 minutes
+        #self.chrono.Start(1000 * 60 * 3) # every 3 minutes
+        self.chrono.Start(1000 * 20) # every 20 seconds
     
     def OnIconify(self, event) :
         self.Hide()
@@ -284,12 +295,12 @@ class PyKotIcon(wxPython.wx.wxFrame):
             self.Show(True)
         self.Raise()
 
-    def OnCloseWindow(self, event) :
+    def OnClose(self, event) :
         if hasattr(self, "chrono") :
             self.chrono.Stop()
             del self.chrono
         if hasattr(self, "menu") :
-            menu.Destroy()
+            self.menu.Destroy()
             del self.menu
         if hasattr(self, "tbicon") :
             self.tbicon.Destroy()
