@@ -32,61 +32,67 @@ import urllib2
 DUMPYKOTA_URL = "http://cgi.librelogiciel.com/cgi-bin/dumpykota.cgi"
 USERNAME = "jerome"
 
-def getPrinterNames() :
-    """Retrieve the printer's names."""
-    arguments = { "report" : 1,
-                  "format" : "csv",
-                  "datatype" : "printers",
-                }  
-    return retrieveDatas(arguments, ["printername"])["printername"]
-    
-def getUserInfo(username) :
-    """Retrieve the user's information."""
-    arguments = { "datatype" : "users",
-                  "filter" : "username=%s" % username,
-                }  
-    return retrieveDatas(arguments, ("limitby", "balance", "lifetimepaid"))
-    
-def getUserPQuotas(username) :
-    """Retrieve the user's print quota information."""
-    arguments = { "datatype" : "upquotas",
-                  "filter" : "username=%s" % username,
-                }  
-    return retrieveDatas(arguments, ("printername", "pagecounter", "softlimit", "datelimit"))
-    
-def retrieveDatas(args, fieldnames) :
-    """Retrieve datas from the CGI script."""
-    arguments = { "report" : 1,
-                  "format" : "csv",
-                }  
-    arguments.update(args)            
-    answer = {}
-    try :            
-        url = "%s?%s" % (DUMPYKOTA_URL, urllib.urlencode(arguments))
-        u = urllib2.urlopen(url)
-        lines = u.readlines()
-    except :    
-        sys.stderr.write("Unable to retrieve %s\n" % url)
-    else :    
-        u.close()
-        try :
-            lines = [ line.strip().split(",") for line in lines ]
-            fields = [field[1:-1] for field in lines[0]]
-            indices = [fields.index(fname) for fname in fieldnames]
-            answer = dict([ (fieldname, \
-                            [ line[fields.index(fieldname)][1:-1] for line in lines[1:] ]) \
-                            for fieldname in fieldnames ])
-        except :    
-            sys.stderr.write("Invalid datas retrieved from %s\n" % url)
-    return answer
+class CGINetworkInterface :
+    """A class for all network interactions."""
+    def __init__(self, url, username=None, password=None) :
+        """Initialize CGI connection datas."""
+        self.url = url
+        self.username = username
+        self.password = password
+        
+    def retrieveDatas(self, arguments, fieldnames) :
+        """Retrieve datas from the CGI script."""
+        args = { "report" : 1,
+                 "format" : "csv",
+               }  
+        args.update(arguments)            
+        answer = {}
+        try :            
+            url = "%s?%s" % (self.url, urllib.urlencode(args))
+            u = urllib2.urlopen(url)
+            lines = u.readlines()
+        except IOError, msg :    
+            raise IOError, "Unable to retrieve %s : %s" % (url, msg)
+        else :    
+            u.close()
+            try :
+                lines = [ line.strip().split(",") for line in lines ]
+                fields = [field[1:-1] for field in lines[0]]
+                indices = [fields.index(fname) for fname in fieldnames]
+                answer = dict([ (fieldname, \
+                                  [ line[fields.index(fieldname)][1:-1] for line in lines[1:] ]) \
+                                for fieldname in fieldnames ])
+            except :    
+                raise ValueError, "Invalid datas retrieved from %s" % url
+        return answer
+        
+    def getPrinterNames(self) :
+        """Retrieve the printer's names."""
+        arguments = { "report" : 1,
+                      "format" : "csv",
+                      "datatype" : "printers",
+                    }  
+        return self.retrieveDatas(arguments, ["printername"])["printername"]
+        
+    def getUserInfo(self, username) :
+        """Retrieve the user's information."""
+        arguments = { "datatype" : "users",
+                      "filter" : "username=%s" % username,
+                    }  
+        return self.retrieveDatas(arguments, ("limitby", "balance", "lifetimepaid"))
+        
+    def getUserPQuotas(self, username) :
+        """Retrieve the user's print quota information."""
+        arguments = { "datatype" : "upquotas",
+                      "filter" : "username=%s" % username,
+                    }  
+        return self.retrieveDatas(arguments, ("printername", "pagecounter", "softlimit", "datelimit"))
     
 if __name__ == "__main__" :
-    #printernames = getPrinterNames()
-    #print "List of printers : ", printernames
+    net = CGINetworkInterface(DUMPYKOTA_URL)
+    print "List of printers : ", net.getPrinterNames()
     
-    userinfo = getUserInfo("jerome")
-    print "User jerome : ", userinfo
+    print "User : ", net.getUserInfo("jerome")
     
-    userpquotas = getUserPQuotas("jerome")
-    print "User jerome's print quotas : ", userpquotas
+    print "User print quotas : ", net.getUserPQuotas("jerome")
 
