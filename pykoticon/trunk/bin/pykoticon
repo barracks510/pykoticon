@@ -151,12 +151,9 @@ class CGINetworkInterface :
     def getUser(self, username) :
         """Retrieves the user account and quota information."""
         info = self.getUserInfo(username)
-        quotas = self.getUserPQuotas(username)
-        return User(username, info, quotas)
-    
-def getWindowsUserName() :    
-    """Retrieves the current user's name under MS Windows."""
-    return win32api.GetUserName()
+        if info :
+            quotas = self.getUserPQuotas(username)
+            return User(username, info, quotas)
     
 class PyKotIcon(wxPython.wx.wxFrame):
     def __init__(self, parent, id, title):
@@ -254,7 +251,10 @@ def main():
     
 def test() :
     """Runs in test mode (console)."""
-    username = getWindowsUserName()
+    if len(sys.argv) >= 3 :
+        username = sys.argv[2] 
+    else :    
+        username = win32api.GetUserName()
     net = CGINetworkInterface(DUMPYKOTA_URL)
     user = net.getUser(username)
     print "UserName : ", user.Name
@@ -269,7 +269,7 @@ def test() :
         print
 
 if __name__ == '__main__':
-    if (len(sys.argv) == 2) and (sys.argv[1] == "--test") :
+    if (len(sys.argv) >= 2) and (sys.argv[1] == "--test") :
         test()
     else :    
         main()
