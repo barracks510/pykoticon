@@ -139,7 +139,7 @@ class CGINetworkInterface :
     def retrieveDatas(self, arguments, fieldnames) :
         """Retrieve datas from the CGI script."""
         args = { "report" : 1,
-                 "format" : "csv",
+                 "format" : "ssv",
                }  
         args.update(arguments)            
         answer = {}
@@ -152,7 +152,7 @@ class CGINetworkInterface :
         else :    
             u.close()
             try :
-                lines = [ line.strip().split(",") for line in lines ]
+                lines = [ line.strip().split(";") for line in lines ]
                 fields = [field[1:-1] for field in lines[0]]
                 indices = [fields.index(fname) for fname in fieldnames]
                 answer = dict([ (fieldname, \
@@ -165,9 +165,7 @@ class CGINetworkInterface :
         
     def getPrinters(self) :
         """Retrieve the printer's names."""
-        arguments = { "report" : 1,
-                      "format" : "csv",
-                      "datatype" : "printers",
+        arguments = { "datatype" : "printers",
                     }  
         return self.retrieveDatas(arguments, ["printername", "priceperpage", \
                                               "priceperjob"])
