@@ -39,7 +39,7 @@ else :
     directory = "."
     withPy2EXE = 1
 
-version = "0.1"
+version = "0.2"
 
 setup(name = "pykoticon", version = version,
       license = "GNU GPL",
