@@ -27,3 +27,4 @@ find . -name "*~" -exec rm -f {} \;
 find . -name "*.pyc" -exec rm -f {} \;
 find . -name "*.pyo" -exec rm -f {} \;
 find . -name "*.jem" -exec rm -f {} \;
+find . -name "*.tmp" -exec rm -f {} \;
