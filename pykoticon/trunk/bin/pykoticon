@@ -181,30 +181,53 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.menu = wxPython.wx.wxMenu()
         self.menu.Append(self.TBMENU_RESTORE, "Show Print Quota")
         self.menu.Append(self.TBMENU_CLOSE, "Quit")
+        
+        self.TBTIMER = wx.NewId()
+        self.chrono = wx.wxTimer(self, self.TBTIMER)
+        EVT_TIMER(self, self.TBTIMER, self.OnChronoTimer)
+        
+        self.User = None
+        self.networkInterface = CGINetworkInterface(DUMPYKOTA_URL)
+        self.inTimer = 0
+        self.chrono.Start(1000 * 60 * 3) # every 3 minutes
 
-    def OnIconify(self, evt):
+    def getCurrentUserName(self) :
+        """Returns the name of the current user."""
+        return win32api.GetUserName()
+        
+    def OnChronoTimer(self, event) :
+        """Retrieves user's data quota information."""
+        if not self.inTimer : # avoids re-entrance
+            self.inTimer = 1
+            self.User = self.networkInterface.getUser(self.getCurrentUserName())
+            self.inTimer = 0
+    
+    def OnIconify(self, event) :
         self.Hide()
 
-    def OnTaskBarActivate(self, event):
-        if self.IsIconized():
+    def OnTaskBarActivate(self, event) :
+        if self.IsIconized() :
             self.Iconize(False)
-        if not self.IsShown():
+        if not self.IsShown() :
             self.Show(True)
         self.Raise()
 
-    def OnCloseWindow(self, event):
+    def OnCloseWindow(self, event) :
+        if hasattr(self, "chrono") :
+            self.chrono.Stop()
+            del self.chrono
         if hasattr(self, "menu") :
             menu.Destroy()
             del self.menu
-        if hasattr(self, "tbicon"):
+        if hasattr(self, "tbicon") :
             self.tbicon.Destroy()
             del self.tbicon
         self.Destroy()
 
-    def OnTaskBarMenu(self, evt):
+    def OnTaskBarMenu(self, evt) :
         self.tbicon.PopupMenu(self.menu)
 
-    def OnTaskBarClose(self, evt):
+    def OnTaskBarClose(self, evt) :
         self.Close()
         wxPython.wx.wxGetApp().ProcessIdle()
 
