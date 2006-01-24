@@ -28,6 +28,11 @@ import urllib
 import urllib2
 import locale
 import gettext
+import socket
+import threading
+import SimpleXMLRPCServer
+
+import time
 
 if sys.platform == "win32" :
     isWindows = 1
@@ -45,7 +50,6 @@ else :
 try :    
     import wxPython.wx
     import wx
-    import wx.grid as gridlib
     hasWxPython = 1
 except ImportError :    
     hasWxPython = 0
@@ -61,222 +65,54 @@ def getCurrentUserName() :
         except :
             return "** Unknown **"
         
-class Printer :
-    """A class for PyKota Printers."""
-    def __init__(self, printername, priceperpage, priceperjob):
-        """Initialize printer datas."""
-        self.PrinterName = printername
-        try :
-            self.PricePerPage = float(priceperpage)
-        except (ValueError, TypeError) :
-            self.PricePerPage = 0.0
-        try :
-            self.PricePerJob = float(priceperjob)
-        except (ValueError, TypeError) :
-            self.PricePerJob = 0.0
-
-class UserQuota :
-    """A class for PyKota User Print Quota entries."""
-    def __init__(self, printername, pagecount, softlimit, hardlimit, datelimit):
-        """Initialize user print quota datas."""
-        self.PrinterName = printername
-        try :
-            self.PageCounter = int(pagecount)
-        except (ValueError, TypeError) :
-            self.PageCounter = 0
-        try :
-            self.SoftLimit = int(softlimit)
-        except (ValueError, TypeError) :
-            self.SoftLimit = None
-        try :
-            self.HardLimit = int(hardlimit)
-        except (ValueError, TypeError) :
-            self.HardLimit = None
-        self.DateLimit = datelimit
+class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
+    """My own server class."""
+    def __init__(self, frame, printserver, localport) :
+        myIPAddress = socket.gethostbyaddr(socket.gethostname())[2][0]
+        SimpleXMLRPCServer.SimpleXMLRPCServer.__init__(self, (myIPAddress, localport))
+        self.printServer = printserver
+        self.frame = frame
+        loop = threading.Thread(target=self.mainloop)
+        loop.start()
         
-class User :
-    """A class for PyKota users."""
-    def __init__(self, username, userinfo, userquotas, printers) :
-        """Initialize user datas."""
-        self.UserName = username
-        self.LimitBy = userinfo["limitby"][0].lower()
-        try :
-            self.Balance = float(userinfo["balance"][0])
-        except (ValueError, TypeError) :
-            self.Balance = 0.0
-        try :
-            self.LifeTimePaid = float(userinfo["lifetimepaid"][0])
-        except (ValueError, TypeError) :
-            self.LifeTimePaid = 0.0
-        self.Printers = {}    
-        self.Quotas = {}
-        for i in range(len(userquotas["printername"])) :
-            printername = userquotas["printername"][i]
-            try :
-                pindex = printers["printername"].index(printername)
-            except (ValueError, KeyError) :
-                pass
-            else :    
-                self.Printers[printername] = Printer(printername, \
-                                              printers["priceperpage"][pindex],\
-                                              printers["priceperjob"][pindex])
-            pagecounter = userquotas["pagecounter"][i]
-            softlimit = userquotas["softlimit"][i]
-            hardlimit = userquotas["hardlimit"][i]
-            datelimit = userquotas["datelimit"][i]
-            self.Quotas[printername] = UserQuota(printername, pagecounter, \
-                                                   softlimit, hardlimit, \
-                                                              datelimit)
-            
-class CGINetworkInterface :
-    """A class for all network interactions."""
-    def __init__(self, cgiurl, authname=None, authpw=None) :
-        """Initialize CGI connection datas."""
-        self.cgiurl = cgiurl
-        self.authname = authname        # TODO : at least do basic auth
-        self.authpw = authpw
+    def export_quitApplication(self) :    
+        """Makes the application quit."""
+        self.frame.quitEvent.set()
+        return True
         
-    def retrieveDatas(self, arguments, fieldnames) :
-        """Retrieve datas from the CGI script."""
-        args = { "report" : 1,
-                 "format" : "ssv",
-               }  
-        args.update(arguments)            
-        answer = {}
-        try :            
-            url = "%s?%s" % (self.cgiurl, urllib.urlencode(args))
-            u = urllib2.urlopen(url)
-            lines = u.readlines()
-        except IOError, msg :    
-            raise IOError, _("Unable to retrieve %s : %s") % (url, msg)
-        else :    
-            u.close()
-            try :
-                lines = [ line.strip().split(";") for line in lines ]
-                fields = [field[1:-1] for field in lines[0]]
-                indices = [fields.index(fname) for fname in fieldnames]
-                answer = dict([ (fieldname, \
-                                  [ line[fields.index(fieldname)][1:-1] \
-                                    for line in lines[1:] ]) \
-                                for fieldname in fieldnames ])
-            except :    
-                raise ValueError, _("Invalid datas retrieved from %s") % url
-        return answer
+    def export_openDialog(self) :    
+        """Opens a dialog to ask username, password, etc..."""
+        print "Open dialog !"
+        return ("jerome", "blah")
         
-    def getPrinters(self) :
-        """Retrieve the printer's names."""
-        arguments = { "datatype" : "printers",
-                    }  
-        return self.retrieveDatas(arguments, ["printername", "priceperpage", \
-                                              "priceperjob"])
+    def verify_request(self, request, client_address) :
+        """Ensures that requests which don't come from the print server are rejected."""
+        (client, port) = client_address
+        if socket.gethostbyname(self.printServer) == client :
+            return True
+        else :
+            # Unauthorized access !
+            return False
         
-    def getUser(self, username) :
-        """Retrieve the user's information."""
-        arguments = { "datatype" : "users",
-                      "filter" : "username=%s" % username,
-                    }  
-        return self.retrieveDatas(arguments, ("limitby", "balance", \
-                                                         "lifetimepaid"))
+    def _dispatch(self, method, params) :    
+        """Ensure that only export_* methods are available."""
+        return getattr(self, "export_%s" % method)(*params)
         
-    def getUserPQuotas(self, username) :
-        """Retrieve the user's print quota information."""
-        arguments = { "datatype" : "upquotas",
-                      "filter" : "username=%s" % username,
-                    }  
-        return self.retrieveDatas(arguments, ("printername", "pagecounter", \
-                                              "softlimit", "hardlimit", \
-                                              "datelimit"))
-                                              
-    def getUserInfo(self, username) :
-        """Retrieves the user account and quota information."""
-        info = self.getUser(username)
-        if info :
-            quotas = self.getUserPQuotas(username)
-            return User(username, info, \
-                                  self.getUserPQuotas(username), \
-                                  self.getPrinters())
+    def mainloop(self) :
+        """XML-RPC Server's main loop."""
+        self.register_function(self.export_openDialog)
+        self.register_function(self.export_quitApplication)
+        while not self.frame.quitEvent.isSet() :
+            self.handle_request()
+        self.frame.Close()  
+        sys.exit(0)
     
-class PyKotIconGrid(gridlib.Grid) :    
-    """A class for user print quota entries."""
-    def __init__(self, parent, user) :
-        gridlib.Grid.__init__(self, parent, -1)
-        nbrows = len(user.Quotas.keys())
-        nbcols = 4
-        if user.LimitBy == "balance" :
-            nbrows += 1
-            nbcols -= 1
-        self.CreateGrid(nbrows, nbcols)
-        self.EnableEditing(False)
-        if user.LimitBy == "balance" :
-            self.SetColLabelValue(0, _("Page Counter"))
-            self.SetColLabelValue(1, _("Price per Page"))
-            self.SetColLabelValue(2, _("Price per Job"))
-            attr = gridlib.GridCellAttr()
-            attr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
-            attr.SetReadOnly(True)
-            colour = wx.GREEN
-            if user.Balance <= 0.0 :
-                colour = wx.RED
-            attr.SetBackgroundColour(colour)        
-            self.SetColAttr(0, attr)
-            attr = gridlib.GridCellAttr()
-            attr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
-            attr.SetReadOnly(True)
-            self.SetColAttr(1, attr)
-            self.SetColAttr(2, attr)
-            i = 0
-            for printername in user.Printers.keys() :
-                printer = user.Printers[printername]
-                quota = user.Quotas[printername]
-                self.SetRowLabelValue(i, printername)
-                self.SetCellValue(i, 0, str(quota.PageCounter))
-                self.SetCellValue(i, 1, str(printer.PricePerPage))
-                self.SetCellValue(i, 2, str(printer.PricePerJob))
-                i += 1
-            self.SetRowLabelValue(i, "")
-            self.SetCellValue(i, 0, _("CREDITS :") + (" %.2f" % user.Balance))
-            self.SetCellAlignment(i, 0, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
-        else :    
-            self.SetColLabelValue(0, _("Page Counter"))
-            self.SetColLabelValue(1, _("Soft Limit"))
-            self.SetColLabelValue(2, _("Hard Limit"))
-            self.SetColLabelValue(3, _("Date Limit"))
-            attr = gridlib.GridCellAttr()
-            attr.SetAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
-            attr.SetReadOnly(True)
-            self.SetColAttr(0, attr)
-            attr = gridlib.GridCellAttr()
-            attr.SetAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
-            attr.SetReadOnly(True)
-            self.SetColAttr(1, attr)
-            self.SetColAttr(2, attr)
-            self.SetColAttr(3, attr)
-            i = 0
-            for printername in user.Quotas.keys() :
-                quota = user.Quotas[printername]
-                self.SetRowLabelValue(i, printername)
-                self.SetCellValue(i, 0, str(quota.PageCounter))
-                self.SetCellValue(i, 1, str(quota.SoftLimit))
-                self.SetCellValue(i, 2, str(quota.HardLimit))
-                self.SetCellValue(i, 3, str(quota.DateLimit))
-                colour = wx.GREEN
-                if quota.SoftLimit is not None :
-                    if quota.PageCounter >= quota.SoftLimit :
-                        colour = wx.RED
-                elif quota.HardLimit is not None :        
-                    if quota.PageCounter >= quota.HardLimit :
-                        colour = wx.RED
-                self.SetCellBackgroundColour(i, 0, colour)        
-                i += 1
-        self.AutoSize()
-        self.Refresh()
-            
-class PyKotIcon(wxPython.wx.wxFrame):
+class PyKotIcon(wx.Frame):
     """Main class."""
     def __init__(self, parent, id):
-        wxPython.wx.wxFrame.__init__(self, parent, -1, \
-               _("PyKota Print Quota for user %s") % getCurrentUserName(), \
-               size = (460, -1), \
+        wx.Frame.__init__(self, parent, -1, \
+               _("PyKota for user %s") % getCurrentUserName(), \
+               size = (-1, -1), \
                style = wxPython.wx.wxDEFAULT_FRAME_STYLE \
                      | wxPython.wx.wxSIZE_AUTO_HEIGHT \
                      | wxPython.wx.wxSIZE_AUTO_WIDTH \
@@ -311,82 +147,10 @@ class PyKotIcon(wxPython.wx.wxFrame):
         wxPython.wx.EVT_ICONIZE(self, self.OnIconify)
         wxPython.wx.EVT_CLOSE(self, self.OnClose)
         
-        self.TBTIMER = wx.NewId()
-        self.chrono = wxPython.wx.wxTimer(self, self.TBTIMER)
-        wxPython.wx.EVT_TIMER(self, self.TBTIMER, self.OnChronoTimer)
-        
-    def postInit(self, configFile) :    
-        """Loads the configuration file and starts processing."""
-        self.User = None
-        url = None
-        try :
-            # try a file on disk first
-            u = open(configFile)
-        except IOError :    
-            try :
-                # then try through the web
-                u = urllib2.urlopen(configFile)
-            except (ValueError, IOError), msg :    
-                raise IOError, _("Impossible to read configuration file %s : %s") % (configFile, msg)
-        url = u.readline().strip()
-        u.close()
-        
-        if not url :
-            raise ValueError, _("Configuration file %s is incorrect.") % configFile
-        self.networkInterface = CGINetworkInterface(url)
-        self.inTimer = False
-        self.chrono.Start(250) # first time in 0.25 second
-
-    def OnChronoTimer(self, event) :
-        """Retrieves user's data quota information."""
-        # we stop it there, needed because we want to
-        # change the delay the first time.
-        self.chrono.Stop()    
-        if self.inTimer is False : # avoids re-entrance
-            self.inTimer = True
-            try :
-                self.User = self.networkInterface.getUserInfo(getCurrentUserName())
-            except IOError, msg :    
-                sys.stderr.write("ERROR : %s\n" % msg)
-            else :
-                if self.User.LimitBy == "balance" :
-                    if self.User.Balance <= 0.0 :
-                        self.SetIcon(self.redicon)
-                        if self.tbicon is not None :
-                            self.tbicon.SetIcon(self.redicon, "PyKotIcon")
-                    else :    
-                        self.SetIcon(self.greenicon)
-                        if self.tbicon is not None :
-                            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-                else :        
-                    isRed = False
-                    for q in self.User.Quotas.keys() :
-                        quota = self.User.Quotas[q]
-                        if quota.SoftLimit is not None :
-                            if quota.PageCounter >= quota.SoftLimit :
-                                isRed = True
-                                break
-                        elif quota.HardLimit is not None :        
-                            if quota.PageCounter >= quota.HardLimit :
-                                isRed = True
-                                break
-                    if isRed is True :
-                        self.SetIcon(self.redicon)
-                        if self.tbicon is not None :
-                            self.tbicon.SetIcon(self.redicon, "PyKotIcon")
-                    else :    
-                        self.SetIcon(self.greenicon)
-                        if self.tbicon is not None :
-                            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-                if hasattr(self, "quotasgrid") :    
-                    self.quotasgrid.Close()
-                    self.quotasgrid.Destroy()
-                    del self.quotasgrid
-                self.quotasgrid = PyKotIconGrid(self, self.User)    
-                self.Refresh()
-            self.inTimer = False
-        # Now we want it every 3 minutes    
-        self.chrono.Start(1000 * 60 * 3) # every 3 minutes
+    def postInit(self, printserver, localport) :    
+        """Starts the XML-RPC server."""
+        self.quitEvent = threading.Event()
+        self.server = MyXMLRPCServer(self, printserver, localport)
     
     def OnIconify(self, event) :
         self.Hide()
@@ -399,23 +163,20 @@ class PyKotIcon(wxPython.wx.wxFrame):
         self.Raise()
 
     def OnClose(self, event) :
-        if hasattr(self, "chrono") :
-            self.chrono.Stop()
-            del self.chrono
-        if hasattr(self, "quotasgrid") :
-            self.quotasgrid.Close()
-            self.quotasgrid.Destroy()
-            del self.quotasgrid
+        sys.stderr.write("Close event !\n")
+        if not self.quitEvent.isSet() :
+            self.quitEvent.set()
         if hasattr(self, "menu") :
             self.menu.Destroy()
             del self.menu
-        if hasattr(self, "tbicon") :
+        if hasattr(self, "tbicon") and self.tbicon :
             self.tbicon.Destroy()
             del self.tbicon
         self.Destroy()
 
     def OnTaskBarMenu(self, evt) :
-        self.tbicon.PopupMenu(self.menu)
+        if self.tbicon :
+            self.tbicon.PopupMenu(self.menu)
 
     def OnTaskBarClose(self, evt) :
         self.Close()
@@ -428,12 +189,12 @@ class PyKotIconApp(wx.PySimpleApp):
             crashed()
         return True
         
-    def postInit(self, configFile) :    
+    def postInit(self, printserver, localport) :    
         """Continues processing."""
-        self.frame.postInit(configFile)
+        self.frame.postInit(printserver, localport)
         self.frame.Show(True)
         
-def main(conffile):
+def main(printserver, localport):
     """Program's entry point."""
     try :
         locale.setlocale(locale.LC_ALL, "")
@@ -444,7 +205,11 @@ def main(conffile):
     except :
         gettext.NullTranslations().install()
     app = PyKotIconApp()
-    app.postInit(conffile)
+    try :
+        localport = int(localport)    
+    except (TypeError, ValueError) :    
+        raise ValueError, "Invalid TCP port parameter %s\n" % localport
+    app.postInit(printserver, localport)
     app.MainLoop()
     
 def crashed() :    
@@ -457,43 +222,14 @@ def crashed() :
     sys.stderr.write(msg)
     sys.stderr.flush()
     
-# def test() :
-#     """Runs in test mode (console)."""
-#     print "Configuration file is ignored."
-#     if len(sys.argv) >= 3 :
-#         username = sys.argv[2] 
-#     else :    
-#         username = getCurrentUserName()
-#     net = CGINetworkInterface(DUMPYKOTA_URL)
-#     user = net.getUserInfo(username)
-#     print "UserName : ", user.UserName
-#     print "LimitBy : ", user.LimitBy
-#     print "Balance : ", user.Balance
-#     for printername in user.Quotas.keys() :
-#         quota = user.Quotas[printername]
-#         print "\tPrinterName : ", printername
-#         print "\tPageCounter : ", quota.PageCounter
-#         print "\tSoftLimit : ", quota.SoftLimit
-#         print "\tHardLimit : ", quota.HardLimit
-#         print "\tDateLimit : ", quota.DateLimit
-#         print
-#     for printername in user.Printers.keys() :
-#         printer = user.Printers[printername]
-#         print "\tPrinterName : ", printername
-#         print "\tPrice per Page : ", printer.PricePerPage
-#         print "\tPrice per Job : ", printer.PricePerJob
-#         print
-
 if __name__ == '__main__':
     if len(sys.argv) >= 2 :
         arg = sys.argv[1]
         if arg in ("-v", "--version") :    
-            print "0.2"
+            print "0.3"
         elif arg in ("-h", "--help") :    
-            print "usage : pykoticon configuration_file"
-        #elif arg == "--test" :
-        #    test()
+            print "usage : pykoticon printserver_hostname localport"
         else :
-            main(arg)
+            main(*sys.argv[1:3])
     else :    
-        main("pykoticon.conf")
+        main("localhost", "7654")
