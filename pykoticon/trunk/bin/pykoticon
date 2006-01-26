@@ -30,6 +30,7 @@ import locale
 import gettext
 import socket
 import threading
+import xmlrpclib
 import SimpleXMLRPCServer
 
 import time
@@ -67,31 +68,45 @@ def getCurrentUserName() :
         
 class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
     """My own server class."""
-    def __init__(self, frame, printserver, localport) :
-        myIPAddress = socket.gethostbyaddr(socket.gethostname())[2][0]
-        SimpleXMLRPCServer.SimpleXMLRPCServer.__init__(self, (myIPAddress, localport))
+    allow_reuse_address = True
+    def __init__(self, frame, printserver, localport, debug=False) :
+        SimpleXMLRPCServer.SimpleXMLRPCServer.__init__(self, ('0.0.0.0', localport))
         self.printServer = printserver
         self.frame = frame
+        self.debug = debug
         loop = threading.Thread(target=self.mainloop)
         loop.start()
         
+    def logDebug(self, message) :    
+        """Logs a debug message if debug mode is active."""
+        if self.debug :
+            sys.stderr.write("%s\n" % message)
+            
     def export_quitApplication(self) :    
         """Makes the application quit."""
+        self.logDebug("Remote host asked to close the application.")
         self.frame.quitEvent.set()
         return True
         
     def export_openDialog(self) :    
         """Opens a dialog to ask username, password, etc..."""
-        print "Open dialog !"
+        self.logDebug("Open dialog !")
         return ("jerome", "blah")
+        
+    def export_nop(self) :    
+        """Does nothing, but allows a clean shutdown from the frame itself."""
+        self.logDebug("No operation !")
+        return True
         
     def verify_request(self, request, client_address) :
         """Ensures that requests which don't come from the print server are rejected."""
         (client, port) = client_address
         if socket.gethostbyname(self.printServer) == client :
+            self.logDebug("%s accepted." % client)
             return True
         else :
             # Unauthorized access !
+            self.logDebug("%s rejected." % client)
             return False
         
     def _dispatch(self, method, params) :    
@@ -102,9 +117,17 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         """XML-RPC Server's main loop."""
         self.register_function(self.export_openDialog)
         self.register_function(self.export_quitApplication)
+        self.register_function(self.export_nop)
         while not self.frame.quitEvent.isSet() :
+            self.logDebug("Loop!")
             self.handle_request()
-        self.frame.Close()  
+        self.server_close()    
+        try :    
+            if not self.frame.closing :
+                self.frame.Close()  
+        except :    
+            # Probably already closed
+            pass
         sys.exit(0)
     
 class PyKotIcon(wx.Frame):
@@ -147,10 +170,24 @@ class PyKotIcon(wx.Frame):
         wxPython.wx.EVT_ICONIZE(self, self.OnIconify)
         wxPython.wx.EVT_CLOSE(self, self.OnClose)
         
+        self.closing = False
+        
+    def closeServer(self) :    
+        """Tells the xml-rpc server to exit."""
+        if not self.quitEvent.isSet() :
+            self.quitEvent.set()
+        server = xmlrpclib.ServerProxy("http://localhost:%s" % self.port)    
+        try :
+            server.nop()
+        except :    
+            # Probably already stopped
+            pass
+        
     def postInit(self, printserver, localport) :    
         """Starts the XML-RPC server."""
         self.quitEvent = threading.Event()
-        self.server = MyXMLRPCServer(self, printserver, localport)
+        self.port = localport
+        self.server = MyXMLRPCServer(self, printserver, localport, debug=True)
     
     def OnIconify(self, event) :
         self.Hide()
@@ -164,8 +201,8 @@ class PyKotIcon(wx.Frame):
 
     def OnClose(self, event) :
         sys.stderr.write("Close event !\n")
-        if not self.quitEvent.isSet() :
-            self.quitEvent.set()
+        self.closing = True
+        self.closeServer()
         if hasattr(self, "menu") :
             self.menu.Destroy()
             del self.menu
