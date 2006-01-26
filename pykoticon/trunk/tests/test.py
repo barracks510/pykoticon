@@ -24,14 +24,16 @@
 
 import sys
 import os
+import time
 import xmlrpclib
 
 def main(arguments) :
     """Main function."""
     server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
     server.nop()
-    print server.openDialog()
+    print "Result : %s" % server.openConfirmDialog("HP2100", "jerome", "345", "this is the title", 5)
     server.nop()
+    time.sleep(10)
     server.quitApplication()
     
 if __name__ == "__main__" :
