@@ -39,7 +39,7 @@ on the client :
   
 on the pykota server :
 
-  $ ./tests/tests.py client_ip_address client_tcp_port
+  $ ./tests/test.py client_ip_address client_tcp_port
   
 NB : You need wxPython for PyKotIcon to work.  
   
