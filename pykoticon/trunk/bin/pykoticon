@@ -231,9 +231,10 @@ You sent job %(jobid)s (%(jobtitle)s) to printer %(printername)s.
 
 This job seems to be %(jobsize)s pages long. 
 
-Please confirm or cancel.""") % locals()
+Do you really want to print it ?""") % locals()
                      
-        dialog = wx.MessageDialog(self, message, _("Confirmation"), wx.OK | wx.CANCEL)
+        dialog = wx.MessageDialog(self, message, _("Confirmation"), \
+                 wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION | wx.STAY_ON_TOP)
         self.askConfirmationResult = dialog.ShowModal()
         dialog.Destroy()
 
