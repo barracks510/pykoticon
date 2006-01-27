@@ -35,15 +35,25 @@ INSTALLATION :
 on the client :
 
   $ python setup.py install
-  $ pykoticon pykota_server_ip_address local_tcp_port
+  $ pykoticon pykota_server_ip_address 7654
   
-on the pykota server :
+on the pykota server, in pykota.conf, just set :
 
-  $ ./tests/test.py client_ip_address client_tcp_port
+--- CUT ---
+overwrite_jobticket: /home/jerome/pykoticon/tests/test.py $PYKOTAJOBORIGINATINGHOSTNAME 7654
+--- CUT ---
+
+NB : here we arbitrarily chose 7654 as the TCP port, please choose 
+any unused port for testing. The TCP port on client and server's 
+command line MUST be identical, however on the client (pykoticon) 
+side, the first parameter to pykoticon MUST be the print server's ip 
+address or hostname : this allows PyKotIcon to only accept requests 
+coming from your print server. In the future it will be possible to 
+do better filtering to allow several print servers for example. 
   
-NB : You need wxPython for PyKotIcon to work.  
+NB2 : You need wxPython for PyKotIcon to work.  
   
-NB2 : Don't expect too much yet ! This release is for developpers only.  
+NB3 : Don't expect too much yet ! This release is for developpers only.  
   
 ====================================================================
     
