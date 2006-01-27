@@ -89,18 +89,14 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         wx.CallAfter(self.frame.OnClose, None)
         return True
         
-    def export_openConfirmDialog(self, printername, username, jobid, jobtitle, jobsize) :    
-        """Opens a dialog to ask the user to confirm or cancel the print job.
-        
-           Returns True to confirm, False to cancel.
-        """   
-        wx.CallAfter(self.frame.askConfirmation, printername, username, jobid, jobtitle, jobsize)
-        
+    def export_showDialog(self, message, yesno) :
+        """Opens a notification or confirmation dialog."""
+        wx.CallAfter(self.frame.showDialog, message, yesno)
         # ugly, isn't it ?
-        while self.frame.askConfirmationResult is None :
+        while self.frame.dialogAnswer is None :
             time.sleep(0.1)
-        retcode = self.frame.askConfirmationResult    
-        self.frame.askConfirmationResult = None # prepare for next call, just in case
+        retcode = self.frame.dialogAnswer    
+        self.frame.dialogAnswer = None # prepare for next call, just in case
         return retcode
         
     def export_nop(self) :    
@@ -125,7 +121,7 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         
     def mainloop(self) :
         """XML-RPC Server's main loop."""
-        self.register_function(self.export_openConfirmDialog)
+        self.register_function(self.export_showDialog)
         self.register_function(self.export_quitApplication)
         self.register_function(self.export_nop)
         while not self.frame.quitEvent.isSet() :
@@ -136,7 +132,7 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
 class PyKotIcon(wx.Frame):
     """Main class."""
     def __init__(self, parent, id):
-        self.askConfirmationResult = None
+        self.dialogAnswer = None
         wx.Frame.__init__(self, parent, wx.ID_ANY, \
                _("PyKota info for  %s") % getCurrentUserName(), \
                size = (-1, -1), \
@@ -223,20 +219,20 @@ class PyKotIcon(wx.Frame):
     def OnTaskBarClose(self, event) :
         self.Close()
         
-    def askConfirmation(self, printername, username, jobid, jobtitle, jobsize) :
-        """Asks for confirmation before printing."""
-        message = _("""Hello %(username)s,
-        
-You sent job %(jobid)s (%(jobtitle)s) to printer %(printername)s.
-
-This job seems to be %(jobsize)s pages long. 
-
-Do you really want to print it ?""") % locals()
-                     
-        dialog = wx.MessageDialog(self, message, _("Confirmation"), \
-                 wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION | wx.STAY_ON_TOP)
-        self.askConfirmationResult = ((dialog.ShowModal() == wx.ID_NO) and "CANCEL") or "OK"
+    def showDialog(self, message, yesno) :
+        """Opens a notification dialog."""
+        self.dialogAnswer = None
+        if yesno :
+            caption = _("Confirmation")
+            style = wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION
+        else :
+            caption = _("Information")
+            style = wx.OK | wx.ICON_INFORMATION
+        style |= wx.STAY_ON_TOP    
+        dialog = wx.MessageDialog(self, message, caption, style)
+        self.dialogAnswer = ((dialog.ShowModal() == wx.ID_NO) and "CANCEL") or "OK"
         dialog.Destroy()
+        
 
 class PyKotIconApp(wx.PySimpleApp):
     def OnInit(self) :
