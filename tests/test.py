@@ -29,13 +29,19 @@ import xmlrpclib
 
 def main(arguments) :
     """Main function."""
-    server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
-    server.nop()
-    print "Result : %s" % server.openConfirmDialog("HP2100", "jerome", "345", "this is the title", 5)
-    server.nop()
-    time.sleep(10)
-    server.quitApplication()
-    
+    printername = os.environ.get("PYKOTAPRINTERNAME")
+    username = os.environ.get("PYKOTAUSERNAME")
+    jobid = os.environ.get("PYKOTAJOBID")
+    jobtitle = os.environ.get("PYKOTATITLE")
+    jobsize = os.environ.get("PYKOTAPRECOMPUTEDJOBSIZE")
+    try :
+        server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
+        result = server.openConfirmDialog(printername, username, jobid, jobtitle, jobsize)
+    except :    
+        sys.stderr.write("An error occured !\n")
+    if result != "OK" :
+        print result
+        
 if __name__ == "__main__" :
     if len(sys.argv) != 3 :
         sys.stderr.write("usage : %s printing_client_hostname_or_ip_address printing_client_TCPPort\n" % sys.argv[0])
