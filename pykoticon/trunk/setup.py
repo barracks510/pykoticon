@@ -47,6 +47,6 @@ setup(name = "pykoticon", version = version,
       author = "Jerome Alet",
       author_email = "alet@librelogiciel.com",
       url = "http://www.librelogiciel.com/software/",
-      windows=[os.path.join("bin", "pykoticon")],
+      # windows=[os.path.join("bin", "pykoticon")],
       scripts=[os.path.join("bin", "pykoticon")],
       data_files=[(directory, glob.glob(os.path.join("icons", "*.ico")))])
