@@ -29,21 +29,32 @@ import xmlrpclib
 
 def main(arguments) :
     """Main function."""
-    printername = os.environ.get("PYKOTAPRINTERNAME")
-    username = os.environ.get("PYKOTAUSERNAME")
-    jobid = os.environ.get("PYKOTAJOBID")
-    jobtitle = os.environ.get("PYKOTATITLE")
-    jobsize = os.environ.get("PYKOTAPRECOMPUTEDJOBSIZE")
-    try :
-        server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
-        result = server.openConfirmDialog(printername, username, jobid, jobtitle, jobsize)
-    except :    
-        sys.stderr.write("An error occured !\n")
-    if result != "OK" :
+    printername = os.environ.get("PYKOTAPRINTERNAME", "Unknown")
+    username = os.environ.get("PYKOTAUSERNAME", "Unknown")
+    jobid = os.environ.get("PYKOTAJOBID", "Unknown")
+    jobtitle = os.environ.get("PYKOTATITLE", "Unknown")
+    jobsize = os.environ.get("PYKOTAPRECOMPUTEDJOBSIZE", "Unknown")
+    
+    if len(arguments) < 3 :
+        message = """Hello %(username)s,
+        
+You sent job %(jobid)s (%(jobtitle)s) to printer %(printername)s.
+
+This job seems to be %(jobsize)s pages long. 
+
+Do you really want to print it ?""" % locals()
+        yesno = True
+    else :
+        message = "\n".join(arguments[2:])
+        yesno = False
+
+    server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
+    result = server.showDialog(message, yesno)
+    if yesno and (result != "OK") :
         print result
         
 if __name__ == "__main__" :
-    if len(sys.argv) != 3 :
+    if len(sys.argv) < 3 :
         sys.stderr.write("usage : %s printing_client_hostname_or_ip_address printing_client_TCPPort\n" % sys.argv[0])
     else :    
         main(sys.argv[1:])
