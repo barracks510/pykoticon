@@ -98,7 +98,7 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         
         # ugly, isn't it ?
         while self.frame.askConfirmationResult is None :
-            time.sleep(0.5)
+            time.sleep(0.1)
         retcode = self.frame.askConfirmationResult    
         self.frame.askConfirmationResult = None # prepare for next call, just in case
         return retcode
@@ -235,7 +235,7 @@ Do you really want to print it ?""") % locals()
                      
         dialog = wx.MessageDialog(self, message, _("Confirmation"), \
                  wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION | wx.STAY_ON_TOP)
-        self.askConfirmationResult = dialog.ShowModal()
+        self.askConfirmationResult = ((dialog.ShowModal() == wx.ID_NO) and "CANCEL") or "OK"
         dialog.Destroy()
 
 class PyKotIconApp(wx.PySimpleApp):
