@@ -281,8 +281,8 @@ if __name__ == '__main__':
         if arg in ("-v", "--version") :    
             print "0.3"
         elif arg in ("-h", "--help") :    
-            print "usage : pykoticon printserver_hostname localport"
+            sys.stderr.write("usage : pykoticon  pykota_server_hostname_or_ip_address  localTCPPort\n")
         else :
             main(*sys.argv[1:3])
     else :    
-        main("localhost", "7654")
+        sys.stderr.write("usage : pykoticon  pykota_server_hostname_or_ip_address  localTCPPort\n")

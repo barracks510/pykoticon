@@ -37,4 +37,7 @@ def main(arguments) :
     server.quitApplication()
     
 if __name__ == "__main__" :
-    main(sys.argv[1:])
+    if len(sys.argv) != 3 :
+        sys.stderr.write("usage : %s printing_client_hostname_or_ip_address printing_client_TCPPort\n" % sys.argv[0])
+    else :    
+        main(sys.argv[1:])
