@@ -86,6 +86,7 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         """Makes the application quit."""
         self.logDebug("Remote host asked to close the application.")
         self.frame.quitEvent.set()
+        wx.CallAfter(self.frame.OnClose, None)
         return True
         
     def export_openConfirmDialog(self, printername, username, jobid, jobtitle, jobsize) :    
@@ -94,10 +95,12 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
            Returns True to confirm, False to cancel.
         """   
         wx.CallAfter(self.frame.askConfirmation, printername, username, jobid, jobtitle, jobsize)
+        
+        # ugly, isn't it ?
         while self.frame.askConfirmationResult is None :
             time.sleep(0.5)
         retcode = self.frame.askConfirmationResult    
-        self.frame.askConfirmationResult = None
+        self.frame.askConfirmationResult = None # prepare for next call, just in case
         return retcode
         
     def export_nop(self) :    
@@ -126,24 +129,16 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         self.register_function(self.export_quitApplication)
         self.register_function(self.export_nop)
         while not self.frame.quitEvent.isSet() :
-            self.logDebug("Loop!")
             self.handle_request()
         self.server_close()    
-        try :    
-            if not self.frame.closing :
-                self.frame.Close()  
-        except :    
-            # Probably already closed
-            pass
         sys.exit(0)
     
 class PyKotIcon(wx.Frame):
     """Main class."""
     def __init__(self, parent, id):
         self.askConfirmationResult = None
-        self.closing = False
         wx.Frame.__init__(self, parent, wx.ID_ANY, \
-               _("PyKota for user %s") % getCurrentUserName(), \
+               _("PyKota info for  %s") % getCurrentUserName(), \
                size = (-1, -1), \
                style = wxPython.wx.wxDEFAULT_FRAME_STYLE \
                      | wxPython.wx.wxSIZE_AUTO_HEIGHT \
@@ -185,6 +180,9 @@ class PyKotIcon(wx.Frame):
             self.quitEvent.set()
         server = xmlrpclib.ServerProxy("http://localhost:%s" % self.port)    
         try :
+            # wake the server with an empty request 
+            # for it to see the event object
+            # which has just been set
             server.nop()
         except :    
             # Probably already stopped
@@ -208,7 +206,6 @@ class PyKotIcon(wx.Frame):
 
     def OnClose(self, event) :
         sys.stderr.write("Close event !\n")
-        self.closing = True
         self.closeServer()
         if hasattr(self, "menu") :
             self.menu.Destroy()
@@ -230,11 +227,11 @@ class PyKotIcon(wx.Frame):
         """Asks for confirmation before printing."""
         message = _("""Hello %(username)s,
         
-                     You sent job %(jobid)s (%(jobtitle)s) to printer %(printername)s.
-                                    
-                     This job seems to be %(jobsize)s pages long. 
-                                    
-                     Please confirm or cancel.""") % locals()
+You sent job %(jobid)s (%(jobtitle)s) to printer %(printername)s.
+
+This job seems to be %(jobsize)s pages long. 
+
+Please confirm or cancel.""") % locals()
                      
         dialog = wx.MessageDialog(self, message, _("Confirmation"), wx.OK | wx.CANCEL)
         self.askConfirmationResult = dialog.ShowModal()
