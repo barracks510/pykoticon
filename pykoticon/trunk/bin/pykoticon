@@ -49,7 +49,6 @@ else :
     import pwd
     
 try :    
-    import wxPython.wx
     import wx
     hasWxPython = 1
 except ImportError :    
@@ -140,79 +139,108 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         self.server_close()    
         sys.exit(0)
     
+class GenericInputDialog(wx.Frame) :    
+    """Generic input dialog box."""
+    def __init__(self, parent, id, labels, varnames, varvalues):
+        wx.Frame.__init__(self, parent, id, \
+               _("PyKotIcon data input"), \
+               size = (-1, -1), \
+               style = wx.DEFAULT_FRAME_STYLE \
+                     | wx.SIZE_AUTO_HEIGHT \
+                     | wx.SIZE_AUTO_WIDTH \
+                     | wx.STAY_ON_TOP \
+                     | wx.NO_FULL_REPAINT_ON_RESIZE)
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        for i in range(len(varnames)) :
+            varname = varnames[i]
+            try :
+                label = labels[i]
+            except IndexError :    
+                label = ""
+            labelid = wx.NewId()    
+            varid = wx.NewId()
+            label = wx.StaticText(self, labelid, label)
+            variable = wx.TextCtrl(self, varid, varvalues.get(varname, ""))
+            hsizer = wx.BoxSizer(wx.HORIZONTAL)
+            hsizer.Add(label, 0, wx.ALIGN_CENTER | wx.ALIGN_RIGHT | wx.ALL, 5)
+            hsizer.Add(variable, 0, wx.ALIGN_CENTER | wx.ALIGN_LEFT | wx.ALL, 5)
+            vsizer.Add(hsizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+            
+        buttonid = wx.NewId()    
+        okbutton = wx.Button(self, buttonid, "OK")    
+        wx.EVT_BUTTON(self, buttonid, self.OnOK)
+        
+        wx.EVT_CLOSE(self, self.OnClose)
+        
+        vsizer.Add(okbutton, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.SetAutoLayout(True)
+        self.SetSizerAndFit(vsizer)
+        self.Layout()
+        self.Show(True)
+        
+    def OnClose(self, event) :
+        """Closes the current frame."""
+        self.Destroy()
+        
+    def OnOK(self, event) :    
+        """Sets the variables values."""
+        # TODO : do something
+        self.Close()
+    
 class PyKotIcon(wx.Frame):
     """Main class."""
     def __init__(self, parent, id):
         self.dialogAnswer = None
-        wx.Frame.__init__(self, parent, wx.ID_ANY, \
-               _("PyKota info for %s") % getCurrentUserName(), \
+        wx.Frame.__init__(self, parent, id, \
+               _("PyKotIcon info for %s") % getCurrentUserName(), \
                size = (-1, -1), \
-               style = wxPython.wx.wxDEFAULT_FRAME_STYLE \
-                     | wxPython.wx.wxSIZE_AUTO_HEIGHT \
-                     | wxPython.wx.wxSIZE_AUTO_WIDTH \
-                     | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
-#        try :             
-#            self.tbicon = wxPython.wx.wxTaskBarIcon()
-#        except AttributeError :    
-#            self.tbicon = None # No taskbar icon facility, old wxWidgets maybe
-#        
-#        self.greenicon = wxPython.wx.wxIcon(os.path.join(iconsdir, "pykoticon-green.ico"), \
-#                                  wxPython.wx.wxBITMAP_TYPE_ICO)
-#        self.redicon = wxPython.wx.wxIcon(os.path.join(iconsdir, "pykoticon-red.ico"), \
-#                                  wxPython.wx.wxBITMAP_TYPE_ICO)
-#        
-#        self.SetIcon(self.greenicon)
-#        if self.tbicon is not None :
-#            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-#            wxPython.wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
-#            wxPython.wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
-#        
-#            self.TBMENU_RESTORE = wx.NewId()
-#            self.TBMENU_CLOSE = wx.NewId()
-#            wxPython.wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
-#                                              self.OnTaskBarActivate)
-#            wxPython.wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
-#                                              self.OnTaskBarClose)
-#            self.menu = wxPython.wx.wxMenu()
-#            self.menu.Append(self.TBMENU_RESTORE, _("Show Print Quota"))
-#            self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
-#        
-        wxPython.wx.EVT_ICONIZE(self, self.OnIconify)
-        wxPython.wx.EVT_CLOSE(self, self.OnClose)
+               style = wx.DEFAULT_FRAME_STYLE \
+                     | wx.SIZE_AUTO_HEIGHT \
+                     | wx.SIZE_AUTO_WIDTH \
+                     | wx.NO_FULL_REPAINT_ON_RESIZE)
+        try :             
+            self.tbicon = wx.TaskBarIcon()
+        except AttributeError :    
+            self.tbicon = None # No taskbar icon facility
+        
+        self.greenicon = wx.Icon(os.path.join(iconsdir, "pykoticon-green.ico"), \
+                                  wx.BITMAP_TYPE_ICO)
+        self.redicon = wx.Icon(os.path.join(iconsdir, "pykoticon-red.ico"), \
+                                  wx.BITMAP_TYPE_ICO)
+        
+        self.SetIcon(self.greenicon)
+        if self.tbicon is not None :
+            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+            wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
+            wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
+        
+            self.TBMENU_RESTORE = wx.NewId()
+            self.TBMENU_CLOSE = wx.NewId()
+            wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
+                                              self.OnTaskBarActivate)
+            wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
+                                              self.OnTaskBarClose)
+            self.menu = wx.wxMenu()
+            self.menu.Append(self.TBMENU_RESTORE, _("Show Print Quota"))
+            self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
+        
+        wx.EVT_ICONIZE(self, self.OnIconify)
+        wx.EVT_CLOSE(self, self.OnClose)
         self.Show(True)
         
-    def closeServer(self) :    
-        """Tells the xml-rpc server to exit."""
-        if not self.quitEvent.isSet() :
-            self.quitEvent.set()
-        server = xmlrpclib.ServerProxy("http://localhost:%s" % self.port)    
-        try :
-            # wake the server with an empty request 
-            # for it to see the event object
-            # which has just been set
-            server.nop()
-        except :    
-            # Probably already stopped
-            pass
-        
-    def postInit(self, printserver, localport) :    
-        """Starts the XML-RPC server."""
-        self.quitEvent = threading.Event()
-        self.port = localport
-        self.server = MyXMLRPCServer(self, printserver, localport, debug=True)
-    
     def OnIconify(self, event) :
-        self.Hide()
+        if not self.IsIconized() :
+            self.Iconize(True)
+        #self.Hide()
 
     def OnTaskBarActivate(self, event) :
-        #if self.IsIconized() :
-        #    self.Iconize(False)
+        if self.IsIconized() :
+            self.Iconize(False)
         if not self.IsShown() :
             self.Show(True)
         self.Raise()
 
     def OnClose(self, event) :
-        sys.stderr.write("Close event !\n")
         self.closeServer()
         if hasattr(self, "menu") :
             self.menu.Destroy()
@@ -223,9 +251,8 @@ class PyKotIcon(wx.Frame):
         self.Destroy()
 
     def OnTaskBarMenu(self, event) :
-        #if self.tbicon :
-        #    self.tbicon.PopupMenu(self.menu)
-        pass
+        if self.tbicon :
+            self.tbicon.PopupMenu(self.menu)
 
     def OnTaskBarClose(self, event) :
         self.Close()
@@ -247,47 +274,40 @@ class PyKotIcon(wx.Frame):
     def askDatas(self, labels, varnames, varvalues) :
         """Opens a dialog box asking for data entry."""
         # use it this way : self.askDatas(["Username", "Password", "Billing code"], ["username", "password", "billingcode"])
-        frame = wx.Frame(self, wx.ID_ANY, \
-               _("Enter PyKota information"), \
-               size = (-1, -1), \
-               style = wxPython.wx.wxDEFAULT_FRAME_STYLE \
-                     | wxPython.wx.wxSIZE_AUTO_HEIGHT \
-                     | wxPython.wx.wxSIZE_AUTO_WIDTH \
-                     | wxPython.wx.wxNO_FULL_REPAINT_ON_RESIZE)
-        self.dialogAnswer = None
-        values = {}
-        vsizer = wx.BoxSizer(wx.VERTICAL)
-        for i in range(len(varnames)) :
-            varname = varnames[i]
-            values[varname] = None
-            try :
-                label = labels[i]
-            except IndexError :    
-                label = ""
-            labelid = wx.NewId()    
-            varid = wx.NewId()
-            label = wx.StaticText(frame, labelid, label)
-            variable = wx.TextCtrl(frame, varid, varvalues.get(varname, ""))
-            hsizer = wx.BoxSizer(wx.HORIZONTAL)
-            hsizer.Add(label, 0, wx.ALIGN_CENTER | wx.ALIGN_RIGHT | wx.ALL, 5)
-            hsizer.Add(variable, 0, wx.ALIGN_CENTER | wx.ALIGN_LEFT | wx.ALL, 5)
-            vsizer.Add(hsizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-        okbutton = wx.Button(frame, wx.ID_ANY, "OK")    
-        vsizer.Add(okbutton, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-        frame.SetAutoLayout(True)
-        frame.SetSizerAndFit(vsizer)
-        frame.Layout()
-        frame.Show(True)
+        frame = GenericInputDialog(self, wx.ID_ANY, labels, varnames, varvalues)
+        # TODO : wait for dialog to close, and return the values
+        return True
+        
+    def closeServer(self) :    
+        """Tells the xml-rpc server to exit."""
+        if not self.quitEvent.isSet() :
+            self.quitEvent.set()
+        server = xmlrpclib.ServerProxy("http://localhost:%s" % self.port)    
+        try :
+            # wake the server with an empty request 
+            # for it to see the event object
+            # which has just been set
+            server.nop()
+        except :    
+            # Probably already stopped
+            pass
+        
+    def postInit(self, printserver, localport) :    
+        """Starts the XML-RPC server."""
+        self.quitEvent = threading.Event()
+        self.port = localport
+        self.server = MyXMLRPCServer(self, printserver, localport, debug=True)
+    
 
 class PyKotIconApp(wx.PySimpleApp):
     def OnInit(self) :
-        self.frame = PyKotIcon(None, -1)
+        self.frame = PyKotIcon(None, wx.ID_ANY)
         return True
         
     def postInit(self, printserver, localport) :    
         """Continues processing."""
         self.frame.postInit(printserver, localport)
-        self.frame.Show(True)
+        #self.frame.Show(True)
         
 def main(printserver, localport):
     """Program's entry point."""

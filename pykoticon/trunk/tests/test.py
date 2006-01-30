@@ -57,6 +57,7 @@ Do you really want to print it ?""" % locals()
                               "password": "******", \
                               "billingcode" : billingcode})
     """                          
+    #server.quitApplication()
     print result # printing OK is safe.
         
 if __name__ == "__main__" :
