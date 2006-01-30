@@ -50,8 +50,7 @@ Do you really want to print it ?""" % locals()
 
     server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
     result = server.showDialog(message, yesno)
-    if yesno and (result != "OK") :
-        print result
+    print result # printing OK is safe.
         
 if __name__ == "__main__" :
     if len(sys.argv) < 3 :
