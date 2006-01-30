@@ -89,6 +89,16 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         wx.CallAfter(self.frame.OnClose, None)
         return True
         
+    def export_askDatas(self, labels, varnames) :    
+        """Asks some textual datas defined by a list of labels and a list of variables' names."""
+        wx.CallAfter(self.frame.askDatas, labels, varnames)
+        # ugly, isn't it ?
+        while self.frame.dialogAnswer is None :
+            time.sleep(0.1)
+        # TODO : add value extraction and return a mapping
+        self.frame.dialogAnswer = None # prepare for next call, just in case
+        return True
+        
     def export_showDialog(self, message, yesno) :
         """Opens a notification or confirmation dialog."""
         wx.CallAfter(self.frame.showDialog, message, yesno)
@@ -121,6 +131,7 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         
     def mainloop(self) :
         """XML-RPC Server's main loop."""
+        self.register_function(self.export_askDatas)
         self.register_function(self.export_showDialog)
         self.register_function(self.export_quitApplication)
         self.register_function(self.export_nop)
@@ -134,7 +145,7 @@ class PyKotIcon(wx.Frame):
     def __init__(self, parent, id):
         self.dialogAnswer = None
         wx.Frame.__init__(self, parent, wx.ID_ANY, \
-               _("PyKota info for  %s") % getCurrentUserName(), \
+               _("PyKota info for %s") % getCurrentUserName(), \
                size = (-1, -1), \
                style = wxPython.wx.wxDEFAULT_FRAME_STYLE \
                      | wxPython.wx.wxSIZE_AUTO_HEIGHT \
@@ -233,6 +244,32 @@ class PyKotIcon(wx.Frame):
         self.dialogAnswer = ((dialog.ShowModal() == wx.ID_NO) and "CANCEL") or "OK"
         dialog.Destroy()
         
+    def askDatas(self, labels, varnames) :
+        """Opens a dialog box asking for data entry."""
+        # use it this way : self.askDatas(["Username", "Password", "Billing code"], ["username", "password", "billingcode"])
+        self.dialogAnswer = None
+        panel = wx.Panel(self, wx.ID_ANY)
+        values = {}
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        for i in range(len(varnames)) :
+            varname = varnames[i]
+            values[varname] = None
+            try :
+                label = labels[i]
+            except IndexError :    
+                label = ""
+            labelid = wx.NewId()    
+            varid = wx.NewId()
+            label = wx.StaticText(panel, labelid, label)
+            variable = wx.TextCtrl(panel, varid, "Blah !")
+            sizer.Add(label, flag=wx.ALIGN_CENTER | wx.ALL)
+            sizer.Add(variable, flag=wx.ALIGN_CENTER | wx.ALL)
+        okbutton = wx.Button(panel, wx.ID_ANY, "OK")    
+        sizer.Add(okbutton, flag=wx.ALIGN_CENTER | wx.ALL)
+        self.SetAutoLayout(True)
+        self.SetSizerAndFit(sizer)
+        self.Layout()
+        #panel.Destroy()
 
 class PyKotIconApp(wx.PySimpleApp):
     def OnInit(self) :
