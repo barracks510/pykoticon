@@ -34,7 +34,7 @@ def main(arguments) :
     jobid = os.environ.get("PYKOTAJOBID", "Unknown")
     jobtitle = os.environ.get("PYKOTATITLE", "Unknown")
     jobsize = os.environ.get("PYKOTAPRECOMPUTEDJOBSIZE", "Unknown")
-    
+    billingcode = os.environ.get("PYKOTAJOBBILLING", "")
     if len(arguments) < 3 :
         message = """Hello %(username)s,
         
@@ -50,6 +50,13 @@ Do you really want to print it ?""" % locals()
 
     server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
     result = server.showDialog(message, yesno)
+    """
+    result = server.askDatas(["Username", "Password", "Billing code"], \
+                             ["username", "password", "billingcode"], \
+                             {"username": username, \
+                              "password": "******", \
+                              "billingcode" : billingcode})
+    """                          
     print result # printing OK is safe.
         
 if __name__ == "__main__" :
