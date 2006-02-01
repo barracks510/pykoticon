@@ -92,11 +92,12 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         """Asks some textual datas defined by a list of labels, a list of variables' names and a list of variables values in a mapping."""
         wx.CallAfter(self.frame.askDatas, labels, varnames, varvalues)
         # ugly, isn't it ?
-        #while self.frame.dialogAnswer is None :
-        #    time.sleep(0.1)
+        while self.frame.dialogAnswer is None :
+            time.sleep(0.1)
         # TODO : add value extraction and return a mapping
+        retcode = self.frame.dialogAnswer    
         self.frame.dialogAnswer = None # prepare for next call, just in case
-        return True
+        return retcode
         
     def export_showDialog(self, message, yesno) :
         """Opens a notification or confirmation dialog."""
@@ -139,17 +140,16 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         self.server_close()    
         sys.exit(0)
     
-class GenericInputDialog(wx.Frame) :    
+class GenericInputDialog(wx.Dialog) :
     """Generic input dialog box."""
     def __init__(self, parent, id, labels, varnames, varvalues):
-        wx.Frame.__init__(self, parent, id, \
+        wx.Dialog.__init__(self, parent, id, \
                _("PyKotIcon data input"), \
-               size = (-1, -1), \
-               style = wx.DEFAULT_FRAME_STYLE \
-                     | wx.SIZE_AUTO_HEIGHT \
-                     | wx.SIZE_AUTO_WIDTH \
+               style = wx.CAPTION \
+                     | wx.THICK_FRAME \
                      | wx.STAY_ON_TOP \
-                     | wx.NO_FULL_REPAINT_ON_RESIZE)
+                     | wx.DIALOG_MODAL)
+
         vsizer = wx.BoxSizer(wx.VERTICAL)
         for i in range(len(varnames)) :
             varname = varnames[i]
@@ -166,27 +166,13 @@ class GenericInputDialog(wx.Frame) :
             hsizer.Add(variable, 0, wx.ALIGN_CENTER | wx.ALIGN_LEFT | wx.ALL, 5)
             vsizer.Add(hsizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
             
-        buttonid = wx.NewId()    
-        okbutton = wx.Button(self, buttonid, "OK")    
-        wx.EVT_BUTTON(self, buttonid, self.OnOK)
-        
-        wx.EVT_CLOSE(self, self.OnClose)
-        
+        okbutton = wx.Button(self, wx.ID_OK, "OK")    
         vsizer.Add(okbutton, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        
         self.SetAutoLayout(True)
         self.SetSizerAndFit(vsizer)
         self.Layout()
-        self.Show(True)
         
-    def OnClose(self, event) :
-        """Closes the current frame."""
-        self.Destroy()
-        
-    def OnOK(self, event) :    
-        """Sets the variables values."""
-        # TODO : do something
-        self.Close()
-    
 class PyKotIcon(wx.Frame):
     """Main class."""
     def __init__(self, parent, id):
@@ -274,9 +260,11 @@ class PyKotIcon(wx.Frame):
     def askDatas(self, labels, varnames, varvalues) :
         """Opens a dialog box asking for data entry."""
         # use it this way : self.askDatas(["Username", "Password", "Billing code"], ["username", "password", "billingcode"])
-        frame = GenericInputDialog(self, wx.ID_ANY, labels, varnames, varvalues)
-        # TODO : wait for dialog to close, and return the values
-        return True
+        self.dialogAnswer = None
+        dialog = GenericInputDialog(self, wx.ID_ANY, labels, varnames, varvalues)
+        self.dialogAnswer = ((dialog.ShowModal() == wx.ID_OK) and "OK") or "CANCEL"
+        print "Result ===> %s" % self.dialogAnswer
+        dialog.Destroy()
         
     def closeServer(self) :    
         """Tells the xml-rpc server to exit."""
