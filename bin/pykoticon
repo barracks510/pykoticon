@@ -94,7 +94,6 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         # ugly, isn't it ?
         while self.frame.dialogAnswer is None :
             time.sleep(0.1)
-        # TODO : add value extraction and return a mapping
         retcode = self.frame.dialogAnswer    
         self.frame.dialogAnswer = None # prepare for next call, just in case
         return retcode
@@ -150,6 +149,7 @@ class GenericInputDialog(wx.Dialog) :
                      | wx.STAY_ON_TOP \
                      | wx.DIALOG_MODAL)
 
+        self.variables = []
         vsizer = wx.BoxSizer(wx.VERTICAL)
         for i in range(len(varnames)) :
             varname = varnames[i]
@@ -160,7 +160,11 @@ class GenericInputDialog(wx.Dialog) :
             labelid = wx.NewId()    
             varid = wx.NewId()
             label = wx.StaticText(self, labelid, label)
-            variable = wx.TextCtrl(self, varid, varvalues.get(varname, ""))
+            if varname.lower().find("password") != -1 :
+                variable = wx.TextCtrl(self, varid, varvalues.get(varname, ""), style=wx.TE_PASSWORD)
+            else :
+                variable = wx.TextCtrl(self, varid, varvalues.get(varname, ""))
+            self.variables.append(variable)    
             hsizer = wx.BoxSizer(wx.HORIZONTAL)
             hsizer.Add(label, 0, wx.ALIGN_CENTER | wx.ALIGN_RIGHT | wx.ALL, 5)
             hsizer.Add(variable, 0, wx.ALIGN_CENTER | wx.ALIGN_LEFT | wx.ALL, 5)
@@ -262,8 +266,16 @@ class PyKotIcon(wx.Frame):
         # use it this way : self.askDatas(["Username", "Password", "Billing code"], ["username", "password", "billingcode"])
         self.dialogAnswer = None
         dialog = GenericInputDialog(self, wx.ID_ANY, labels, varnames, varvalues)
-        self.dialogAnswer = ((dialog.ShowModal() == wx.ID_OK) and "OK") or "CANCEL"
-        print "Result ===> %s" % self.dialogAnswer
+        retvalues = {}
+        if dialog.ShowModal() == wx.ID_OK :
+            retvalues["isValid"] = True
+            for i in range(len(varnames)) :
+                retvalues[varnames[i]] = dialog.variables[i].GetValue()
+        else :        
+            retvalues["isValid"] = False
+            for k in varvalues.keys() :
+                retvalues[k] = ""
+        self.dialogAnswer = retvalues
         dialog.Destroy()
         
     def closeServer(self) :    

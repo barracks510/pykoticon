@@ -49,16 +49,19 @@ Do you really want to print it ?""" % locals()
         yesno = False
 
     server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
-    result = server.showDialog(message, yesno)
-    """
+    #result = server.showDialog(message, yesno)
+    #"""
     result = server.askDatas(["Username", "Password", "Billing code"], \
                              ["username", "password", "billingcode"], \
                              {"username": username, \
-                              "password": "******", \
+                              "password": "cccccc", \
                               "billingcode" : billingcode})
-    """                          
+    #"""                          
     #server.quitApplication()
-    print result # printing OK is safe.
+    if result["isValid"] :
+        print result # printing OK is safe.
+    else :    
+        print "the end user closed the dialog box !"
         
 if __name__ == "__main__" :
     if len(sys.argv) < 3 :
