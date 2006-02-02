@@ -49,17 +49,17 @@ Do you really want to print it ?""" % locals()
         yesno = False
 
     server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
-    #result = server.showDialog(message, yesno)
+    #result = server.showDialog(xmlrpclib.Binary(message), yesno)
     #"""
-    result = server.askDatas(["Username", "Password", "Billing code"], \
+    result = server.askDatas([xmlrpclib.Binary(v) for v in ["Username", "Password", "Billing code"]], \
                              ["username", "password", "billingcode"], \
-                             {"username": username, \
-                              "password": "cccccc", \
-                              "billingcode" : billingcode})
+                             {"username": xmlrpclib.Binary(username), \
+                              "password": xmlrpclib.Binary(""), \
+                              "billingcode" : xmlrpclib.Binary(billingcode)})
     #"""                          
     #server.quitApplication()
     if result["isValid"] :
-        print result # printing OK is safe.
+        print "\n".join(["%s => '%s'" % (k, v.data) for (k, v) in result.items() if k != "isValid"])
     else :    
         print "the end user closed the dialog box !"
         

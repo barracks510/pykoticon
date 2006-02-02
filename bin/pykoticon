@@ -83,24 +83,31 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
             
     def export_quitApplication(self) :    
         """Makes the application quit."""
-        self.logDebug("Remote host asked to close the application.")
         self.frame.quitEvent.set()
         wx.CallAfter(self.frame.OnClose, None)
         return True
         
     def export_askDatas(self, labels, varnames, varvalues) :
         """Asks some textual datas defined by a list of labels, a list of variables' names and a list of variables values in a mapping."""
-        wx.CallAfter(self.frame.askDatas, labels, varnames, varvalues)
+        values = {}
+        for (k, v) in varvalues.items() :
+            values[k] = v.data
+        wx.CallAfter(self.frame.askDatas, [ v.data for v in labels ], \
+                                          varnames, \
+                                          values)
         # ugly, isn't it ?
         while self.frame.dialogAnswer is None :
             time.sleep(0.1)
         retcode = self.frame.dialogAnswer    
+        for (k, v) in retcode.items() :
+            if k != "isValid" :
+                retcode[k] = xmlrpclib.Binary(v)
         self.frame.dialogAnswer = None # prepare for next call, just in case
         return retcode
         
     def export_showDialog(self, message, yesno) :
         """Opens a notification or confirmation dialog."""
-        wx.CallAfter(self.frame.showDialog, message, yesno)
+        wx.CallAfter(self.frame.showDialog, message.data, yesno)
         # ugly, isn't it ?
         while self.frame.dialogAnswer is None :
             time.sleep(0.1)
@@ -110,7 +117,6 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         
     def export_nop(self) :    
         """Does nothing, but allows a clean shutdown from the frame itself."""
-        self.logDebug("No operation !")
         return True
         
     def verify_request(self, request, client_address) :
