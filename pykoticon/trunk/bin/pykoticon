@@ -302,7 +302,7 @@ class PyKotIcon(wx.Frame):
         """Starts the XML-RPC server."""
         self.quitEvent = threading.Event()
         self.port = localport
-        self.server = MyXMLRPCServer(self, printserver, localport, debug=True)
+        self.server = MyXMLRPCServer(self, printserver, localport)
     
 
 class PyKotIconApp(wx.PySimpleApp):
