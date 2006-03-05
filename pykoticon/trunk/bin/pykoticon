@@ -216,9 +216,9 @@ class PyKotIcon(wx.Frame):
                                               self.OnTaskBarActivate)
             wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
                                               self.OnTaskBarClose)
-            self.menu = wx.wxMenu()
-            self.menu.Append(self.TBMENU_RESTORE, _("Show Print Quota"))
-            self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
+            #self.menu = wx.wxMenu()
+            #self.menu.Append(self.TBMENU_RESTORE, _("Show Print Quota"))
+            #self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
         
         wx.EVT_ICONIZE(self, self.OnIconify)
         wx.EVT_CLOSE(self, self.OnClose)
@@ -238,17 +238,22 @@ class PyKotIcon(wx.Frame):
 
     def OnClose(self, event) :
         self.closeServer()
-        if hasattr(self, "menu") :
+        try :
             self.menu.Destroy()
-            del self.menu
-        if hasattr(self, "tbicon") and self.tbicon :
+        except AttributeError :    
+            pass
+        try :    
             self.tbicon.Destroy()
-            del self.tbicon
+        except AttributeError :    
+            pass
         self.Destroy()
 
     def OnTaskBarMenu(self, event) :
         if self.tbicon :
-            self.tbicon.PopupMenu(self.menu)
+            try :
+                self.tbicon.PopupMenu(self.menu)
+            except AttributeError :    
+                pass
 
     def OnTaskBarClose(self, event) :
         self.Close()
