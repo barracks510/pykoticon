@@ -110,10 +110,10 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         """Asks some textual datas defined by a list of labels, a list of variables' names and a list of variables values in a mapping."""
         values = {}
         for (k, v) in varvalues.items() :
-            values[k] = v.data
+            values[k] = self.frame.UTF8ToUserCharset(v.data)
         wx.CallAfter(self.frame.askDatas, [ self.frame.UTF8ToUserCharset(v.data) for v in labels ], \
                                           varnames, \
-                                          [ self.frame.UTF8ToUserCharset(v.data) for v in values])
+                                          values)
         # ugly, isn't it ?
         while self.frame.dialogAnswer is None :
             time.sleep(0.1)
@@ -337,19 +337,22 @@ class PyKotIcon(wx.Frame):
         self.quitEvent = threading.Event()
         self.charset = charset
         self.port = localport
-        self.server = MyXMLRPCServer(self, printserver, localport)
+        self.server = MyXMLRPCServer(self, printserver, localport, debug=True)
         
     def UTF8ToUserCharset(self, text) :
         """Converts from UTF-8 to user's charset."""
         if text is not None :
             try :
                 return unicode(text, "UTF-8").encode(self.charset) 
-            except UnicodeError :    
+            except (UnicodeError, TypeError) :    
                 try :
                     # Incorrect locale settings ?
                     return unicode(text, "UTF-8").encode("ISO-8859-15") 
-                except UnicodeError :    
-                    pass
+                except (UnicodeError, TypeError) :    
+                    try :
+                        return text.encode(self.charset) 
+                    except (UnicodeError, TypeError, AttributeError) :
+                        pass
         return text
         
     def userCharsetToUTF8(self, text) :
@@ -357,12 +360,15 @@ class PyKotIcon(wx.Frame):
         if text is not None :
             try :
                 return unicode(text, self.charset).encode("UTF-8") 
-            except UnicodeError :    
+            except (UnicodeError, TypeError) :    
                 try :
                     # Incorrect locale settings ?
                     return unicode(text, "ISO-8859-15").encode("UTF-8") 
-                except UnicodeError :    
-                    pass
+                except (UnicodeError, TypeError) :    
+                    try :
+                        return text.encode("UTF-8") 
+                    except (UnicodeError, TypeError, AttributeError) :
+                        pass
         return text
 
 class PyKotIconApp(wx.App):
