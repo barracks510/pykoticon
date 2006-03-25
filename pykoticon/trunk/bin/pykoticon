@@ -111,22 +111,22 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         values = {}
         for (k, v) in varvalues.items() :
             values[k] = v.data
-        wx.CallAfter(self.frame.askDatas, [ v.data for v in labels ], \
+        wx.CallAfter(self.frame.askDatas, [ self.frame.UTF8ToUserCharset(v.data) for v in labels ], \
                                           varnames, \
-                                          values)
+                                          [ self.frame.UTF8ToUserCharset(v.data) for v in values])
         # ugly, isn't it ?
         while self.frame.dialogAnswer is None :
             time.sleep(0.1)
         retcode = self.frame.dialogAnswer    
         for (k, v) in retcode.items() :
             if k != "isValid" :
-                retcode[k] = xmlrpclib.Binary(v)
+                retcode[k] = xmlrpclib.Binary(self.frame.userCharsetToUTF8(v))
         self.frame.dialogAnswer = None # prepare for next call, just in case
         return retcode
         
     def export_showDialog(self, message, yesno) :
         """Opens a notification or confirmation dialog."""
-        wx.CallAfter(self.frame.showDialog, message.data, yesno)
+        wx.CallAfter(self.frame.showDialog, self.frame.UTF8ToUserCharset(message.data), yesno)
         # ugly, isn't it ?
         while self.frame.dialogAnswer is None :
             time.sleep(0.1)
@@ -332,12 +332,38 @@ class PyKotIcon(wx.Frame):
             # Probably already stopped
             pass
         
-    def postInit(self, printserver, localport) :    
+    def postInit(self, charset, printserver, localport) :    
         """Starts the XML-RPC server."""
         self.quitEvent = threading.Event()
+        self.charset = charset
         self.port = localport
         self.server = MyXMLRPCServer(self, printserver, localport)
-    
+        
+    def UTF8ToUserCharset(self, text) :
+        """Converts from UTF-8 to user's charset."""
+        if text is not None :
+            try :
+                return unicode(text, "UTF-8").encode(self.charset) 
+            except UnicodeError :    
+                try :
+                    # Incorrect locale settings ?
+                    return unicode(text, "UTF-8").encode("ISO-8859-15") 
+                except UnicodeError :    
+                    pass
+        return text
+        
+    def userCharsetToUTF8(self, text) :
+        """Converts from user's charset to UTF-8."""
+        if text is not None :
+            try :
+                return unicode(text, self.charset).encode("UTF-8") 
+            except UnicodeError :    
+                try :
+                    # Incorrect locale settings ?
+                    return unicode(text, "ISO-8859-15").encode("UTF-8") 
+                except UnicodeError :    
+                    pass
+        return text
 
 class PyKotIconApp(wx.App):
     def OnInit(self) :
@@ -346,9 +372,9 @@ class PyKotIconApp(wx.App):
         self.frame.Show(False)
         return True
         
-    def postInit(self, printserver, localport) :    
+    def postInit(self, charset, printserver, localport) :    
         """Continues processing."""
-        self.frame.postInit(printserver, localport)
+        self.frame.postInit(charset, printserver, localport)
         
 def main(printserver, localport):
     """Program's entry point."""
@@ -360,12 +386,30 @@ def main(printserver, localport):
         gettext.install("pykoticon")
     except :
         gettext.NullTranslations().install()
+        
+    localecharset = None
+    try :
+        try :
+            localecharset = locale.nl_langinfo(locale.CODESET)
+        except AttributeError :    
+            try :
+                localecharset = locale.getpreferredencoding()
+            except AttributeError :    
+                try :
+                    localecharset = locale.getlocale()[1]
+                    localecharset = localecharset or locale.getdefaultlocale()[1]
+                except ValueError :    
+                    pass        # Unknown locale, strange...
+    except locale.Error :            
+        pass
+    charset = os.environ.get("CHARSET") or localecharset or "ISO-8859-15"
+    
     app = PyKotIconApp()
     try :
         localport = int(localport)    
     except (TypeError, ValueError) :    
         raise ValueError, "Invalid TCP port parameter %s\n" % localport
-    app.postInit(printserver, localport)
+    app.postInit(charset, printserver, localport)
     app.MainLoop()
     
 def crashed() :    
