@@ -210,38 +210,29 @@ class PyKotIcon(wx.Frame):
                _("PyKotIcon info for %s") % getCurrentUserName(), \
                size = (1, 1), \
                style = wx.FRAME_NO_TASKBAR | wx.NO_FULL_REPAINT_ON_RESIZE)
-        try :             
-            self.tbicon = wx.TaskBarIcon()
-        except AttributeError :    
-            self.tbicon = None # No taskbar icon facility
-        
+                     
+        self.tbicon = wx.TaskBarIcon()
         self.greenicon = wx.Icon(os.path.join(iconsdir, "pykoticon-green.ico"), \
                                   wx.BITMAP_TYPE_ICO)
         self.redicon = wx.Icon(os.path.join(iconsdir, "pykoticon-red.ico"), \
                                   wx.BITMAP_TYPE_ICO)
+        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
         
-        self.SetIcon(self.greenicon)
-        if self.tbicon is not None :
-            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-            wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
-            wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
+        wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
+        wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
         
-            self.TBMENU_ABOUT = wx.NewId()
-            self.TBMENU_RESTORE = wx.NewId()
-            self.TBMENU_CLOSE = wx.NewId()
-            wx.EVT_MENU(self.tbicon, self.TBMENU_ABOUT, \
-                                              self.OnAbout)
-            wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
-                                              self.OnTaskBarActivate)
-            wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
-                                              self.OnTaskBarClose)
-            try :                                  
-                self.menu = wx.Menu()
-            except :    
-                pass
-            else :    
-                self.menu.Append(self.TBMENU_ABOUT, _("About"))
-                self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
+        self.TBMENU_ABOUT = wx.NewId()
+        self.TBMENU_RESTORE = wx.NewId()
+        self.TBMENU_CLOSE = wx.NewId()
+        wx.EVT_MENU(self.tbicon, self.TBMENU_ABOUT, \
+                                          self.OnAbout)
+        wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
+                                          self.OnTaskBarActivate)
+        wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
+                                          self.OnTaskBarClose)
+        self.menu = wx.Menu()
+        self.menu.Append(self.TBMENU_ABOUT, _("About"))
+        self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
         
         wx.EVT_ICONIZE(self, self.OnIconify)
         wx.EVT_CLOSE(self, self.OnClose)
@@ -261,22 +252,12 @@ class PyKotIcon(wx.Frame):
 
     def OnClose(self, event) :
         self.closeServer()
-        try :
-            self.menu.Destroy()
-        except AttributeError :    
-            pass
-        try :    
-            self.tbicon.Destroy()
-        except AttributeError :    
-            pass
+        self.menu.Destroy()
+        self.tbicon.Destroy()
         self.Destroy()
 
     def OnTaskBarMenu(self, event) :
-        if self.tbicon :
-            try :
-                self.tbicon.PopupMenu(self.menu)
-            except AttributeError :    
-                pass
+        self.tbicon.PopupMenu(self.menu)
 
     def OnTaskBarClose(self, event) :
         self.Close()
@@ -374,8 +355,8 @@ class PyKotIcon(wx.Frame):
 class PyKotIconApp(wx.App):
     def OnInit(self) :
         self.frame = PyKotIcon(None, wx.ID_ANY)
-        self.frame.Center(wx.BOTH)
         self.frame.Show(False)
+        self.SetTopWindow(self.frame)
         return True
         
     def postInit(self, charset, printserver, localport) :    
