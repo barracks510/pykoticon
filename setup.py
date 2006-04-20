@@ -34,19 +34,25 @@ except ImportError :
         sys.exit(-1)
     else :    
         directory = os.sep.join(["share", "pykoticon"])
-        withPy2EXE = 0
+        withPy2EXE = False
 else :        
     directory = "."
-    withPy2EXE = 1
+    withPy2EXE = True
 
 version = "1.00"
 
-setup(name = "pykoticon", version = version,
-      license = "GNU GPL",
-      description = "an end-user companion for PyKota",
-      author = "Jerome Alet",
-      author_email = "alet@librelogiciel.com",
-      url = "http://www.librelogiciel.com/software/",
-      windows=[os.path.join("bin", "pykoticon")],
-      #scripts=[os.path.join("bin", "pykoticon")],
-      data_files=[(directory, glob.glob(os.path.join("icons", "*.ico")))])
+setupDictionary = { "name" : "pykoticon", 
+                    "version" : version,
+                    "license" : "GNU GPL",
+                    "description" : "a generic, networked, cross-platform, dialog box manager",
+                    "author" : "Jerome Alet",
+                    "author_email" : "alet@librelogiciel.com",
+                    "url" : "http://www.librelogiciel.com/software/",
+                    "data_files" : [(directory, glob.glob(os.path.join("icons", "*.ico")))],
+                  }
+if withPy2EXE :      
+    setupDictionary["windows"] = [os.path.join("bin", "pykoticon")]
+else :    
+    setupDictionary["scripts"] = [os.path.join("bin", "pykoticon")]
+      
+setup(**setupDictionary)
