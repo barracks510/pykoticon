@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: ISO-8859-15 -*-
 
+"""Packaging and installation script for PyKotIcon."""
+
 # PyKotIcon - Client side helper for PyKota
 #
 # (c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
@@ -50,9 +52,10 @@ setupDictionary = { "name" : "pykoticon",
                     "url" : "http://www.librelogiciel.com/software/",
                     "data_files" : [(directory, glob.glob(os.path.join("icons", "*.ico")))],
                   }
-if withPy2EXE :      
+if withPy2EXE :
     setupDictionary["windows"] = [os.path.join("bin", "pykoticon")]
-else :    
+    setupDictionary["data_files"].append((directory, os.path.join("bin", "pykoticon.vbs")))
+else :
     setupDictionary["scripts"] = [os.path.join("bin", "pykoticon")]
       
 setup(**setupDictionary)
