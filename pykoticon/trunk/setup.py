@@ -27,6 +27,7 @@
 from distutils.core import setup
 import sys
 import os
+import imp
 import glob
 try :
     import py2exe
@@ -41,15 +42,14 @@ else :
     directory = "."
     withPy2EXE = True
 
-version = "1.00"
-
+config = imp.load_source("config", os.path.join("bin", "pykoticon"))
 setupDictionary = { "name" : "pykoticon", 
-                    "version" : version,
-                    "license" : "GNU GPL",
-                    "description" : "a generic, networked, cross-platform, dialog box manager",
-                    "author" : "Jerome Alet",
-                    "author_email" : "alet@librelogiciel.com",
-                    "url" : "http://www.librelogiciel.com/software/",
+                    "version" : config.__version__,
+                    "license" : config.__license__,
+                    "description" : config.__doc__,
+                    "author" : config.__author__,
+                    "author_email" : config.__author_email__,
+                    "url" : config.__url__,
                     "data_files" : [(directory, glob.glob(os.path.join("icons", "*.ico")))],
                   }
 if withPy2EXE :
