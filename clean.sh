@@ -22,6 +22,7 @@
 # Use this to clean the tree from temporary files
 
 rm -fr MANIFEST build dist
+rm -f bin/pykoticonc
 find . -name "*.bak" -exec rm -f {} \;
 find . -name "*~" -exec rm -f {} \;
 find . -name "*.pyc" -exec rm -f {} \;
