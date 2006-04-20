@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: ISO-8859-15 -*-
 
+"""PyKotIcon is a generic, networked, cross-platform dialog box manager."""
+
 # PyKotIcon - Client side helper for PyKota
 #
 # (c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
@@ -18,12 +20,18 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 #
-# $Id$
 #
-#
+
+__version__ = "1.01"
+__author__ = "Jerome Alet"
+__author_email__ = "alet@librelogiciel.com"
+__license__ = "GNU GPL"
+__url__ = "http://www.librelogiciel.com/software/"
+__revision__ = "$Id$"
 
 import sys
 import os
+import time
 import urllib
 import urllib2
 import locale
@@ -33,10 +41,9 @@ import threading
 import xmlrpclib
 import SimpleXMLRPCServer
 
-import time
 
 if sys.platform == "win32" :
-    isWindows = 1
+    isWindows = True
     try :
         import win32api
     except ImportError :    
@@ -44,20 +51,22 @@ if sys.platform == "win32" :
     else :    
         iconsdir = os.path.split(sys.argv[0])[0]
 else :        
-    isWindows = 0
+    isWindows = False
     iconsdir = "/usr/share/pykoticon"   # TODO : change this
     import pwd
     
 try :    
     import wx
-    hasWxPython = 1
+    hasWxPython = True
 except ImportError :    
-    hasWxPython = 0
+    hasWxPython = False
     raise ImportError, "wxPython is missing. Please install it."
     
-aboutbox = """PyKotIcon v1.00 (c) 2003, 2004, 2005, 2006 Jerome Alet - alet@librelogiciel.com    
+aboutbox = """PyKotIcon v%(__version__)s (c) 2003-2006 %(__author__)s - %(__author_email__)s
 
-PyKotIcon is a client side print quota notifier for PyKota, but it 
+PyKotIcon is generic, networked, cross-platform dialog box manager.
+
+It is often used as a client side companion for PyKota, but it
 can be used from other applications if you want.
 
 This program is free software; you can redistribute it and/or modify
@@ -74,15 +83,6 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA."""
 
-def getCurrentUserName() :
-    """Retrieves the current user's name."""
-    if isWindows :
-        return win32api.GetUserName()
-    else :    
-        try :
-            return pwd.getpwuid(os.geteuid())[0]
-        except :
-            return "** Unknown **"
         
 class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
     """My own server class."""
@@ -109,18 +109,18 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
     def export_askDatas(self, labels, varnames, varvalues) :
         """Asks some textual datas defined by a list of labels, a list of variables' names and a list of variables values in a mapping."""
         values = {}
-        for (k, v) in varvalues.items() :
-            values[k] = self.frame.UTF8ToUserCharset(v.data)
-        wx.CallAfter(self.frame.askDatas, [ self.frame.UTF8ToUserCharset(v.data) for v in labels ], \
+        for (key, value) in varvalues.items() :
+            values[key] = self.frame.UTF8ToUserCharset(value.data)
+        wx.CallAfter(self.frame.askDatas, [ self.frame.UTF8ToUserCharset(label.data) for label in labels ], \
                                           varnames, \
                                           values)
         # ugly, isn't it ?
         while self.frame.dialogAnswer is None :
             time.sleep(0.1)
         retcode = self.frame.dialogAnswer    
-        for (k, v) in retcode.items() :
-            if k != "isValid" :
-                retcode[k] = xmlrpclib.Binary(self.frame.userCharsetToUTF8(v))
+        for (key, value) in retcode.items() :
+            if key != "isValid" :
+                retcode[key] = xmlrpclib.Binary(self.frame.userCharsetToUTF8(value))
         self.frame.dialogAnswer = None # prepare for next call, just in case
         return retcode
         
@@ -164,6 +164,7 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         self.server_close()    
         sys.exit(0)
     
+    
 class GenericInputDialog(wx.Dialog) :
     """Generic input dialog box."""
     def __init__(self, parent, id, labels, varnames, varvalues):
@@ -202,12 +203,13 @@ class GenericInputDialog(wx.Dialog) :
         self.SetSizerAndFit(vsizer)
         self.Layout()
         
+        
 class PyKotIcon(wx.Frame):
     """Main class."""
     def __init__(self, parent, id):
         self.dialogAnswer = None
         wx.Frame.__init__(self, parent, id, \
-               _("PyKotIcon info for %s") % getCurrentUserName(), \
+               _("PyKotIcon info for %s") % self.getCurrentUserName(), \
                size = (1, 1), \
                style = wx.FRAME_NO_TASKBAR | wx.NO_FULL_REPAINT_ON_RESIZE)
                      
@@ -238,6 +240,16 @@ class PyKotIcon(wx.Frame):
         wx.EVT_CLOSE(self, self.OnClose)
         self.Show(True)
         
+    def getCurrentUserName(self) :
+        """Retrieves the current user's name."""
+        if isWindows :
+            return win32api.GetUserName()
+        else :    
+            try :
+                return pwd.getpwuid(os.geteuid())[0]
+            except :
+                return "** Unknown **"
+            
     def OnIconify(self, event) :
         if not self.IsIconized() :
             self.Iconize(True)
@@ -264,7 +276,7 @@ class PyKotIcon(wx.Frame):
         
     def OnAbout(self, event) :    
         """Displays the about box."""
-        dialog = wx.MessageDialog(self, aboutbox, _("About"), wx.OK | wx.ICON_INFORMATION)
+        dialog = wx.MessageDialog(self, aboutbox % globals(), _("About"), wx.OK | wx.ICON_INFORMATION)
         dialog.ShowModal()
         dialog.Destroy()
         
@@ -318,39 +330,43 @@ class PyKotIcon(wx.Frame):
         self.quitEvent = threading.Event()
         self.charset = charset
         self.port = localport
-        self.server = MyXMLRPCServer(self, printserver, localport, debug=True)
+        self.server = MyXMLRPCServer(self, printserver, localport)
         
     def UTF8ToUserCharset(self, text) :
         """Converts from UTF-8 to user's charset."""
         if text is not None :
             try :
-                return unicode(text, "UTF-8").encode(self.charset) 
-            except (UnicodeError, TypeError) :    
+                return text.decode("UTF-8").encode(self.charset, "replace") 
+            except (UnicodeError, AttributeError) :    
                 try :
-                    # Incorrect locale settings ?
-                    return unicode(text, "UTF-8").encode("ISO-8859-15") 
-                except (UnicodeError, TypeError) :    
-                    try :
-                        return text.encode(self.charset) 
-                    except (UnicodeError, TypeError, AttributeError) :
-                        pass
+                    # Maybe already in Unicode
+                    return text.encode(self.charset, "replace") 
+                except (UnicodeError, AttributeError) :
+                    pass # Don't know what to do
         return text
         
     def userCharsetToUTF8(self, text) :
         """Converts from user's charset to UTF-8."""
         if text is not None :
             try :
-                return unicode(text, self.charset).encode("UTF-8") 
-            except (UnicodeError, TypeError) :    
+                # We don't necessarily trust the default charset, because
+                # xprint sends us titles in UTF-8 but CUPS gives us an ISO-8859-1 charset !
+                # So we first try to see if the text is already in UTF-8 or not, and
+                # if it is, we delete characters which can't be converted to the user's charset,
+                # then convert back to UTF-8. PostgreSQL 7.3.x used to reject some unicode characters,
+                # this is fixed by the ugly line below :
+                return text.decode("UTF-8").encode(self.charset, "replace").decode(self.charset).encode("UTF-8", "replace")
+            except (UnicodeError, AttributeError) :
                 try :
-                    # Incorrect locale settings ?
-                    return unicode(text, "ISO-8859-15").encode("UTF-8") 
-                except (UnicodeError, TypeError) :    
+                    return text.decode(self.charset).encode("UTF-8", "replace") 
+                except (UnicodeError, AttributeError) :    
                     try :
-                        return text.encode("UTF-8") 
-                    except (UnicodeError, TypeError, AttributeError) :
-                        pass
+                        # Maybe already in Unicode
+                        return text.encode("UTF-8", "replace") 
+                    except (UnicodeError, AttributeError) :
+                        pass # Don't know what to do
         return text
+        
 
 class PyKotIconApp(wx.App):
     def OnInit(self) :
@@ -362,6 +378,7 @@ class PyKotIconApp(wx.App):
     def postInit(self, charset, printserver, localport) :    
         """Continues processing."""
         self.frame.postInit(charset, printserver, localport)
+        
         
 def main(printserver, localport):
     """Program's entry point."""
@@ -399,6 +416,7 @@ def main(printserver, localport):
     app.postInit(charset, printserver, localport)
     app.MainLoop()
     
+    
 def crashed() :    
     """Minimal crash method."""
     import traceback
@@ -409,11 +427,12 @@ def crashed() :
     sys.stderr.write(msg)
     sys.stderr.flush()
     
+    
 if __name__ == '__main__':
     if len(sys.argv) >= 2 :
         arg = sys.argv[1]
         if arg in ("-v", "--version") :    
-            print "0.3"
+            print __version__
         elif arg in ("-h", "--help") :    
             sys.stderr.write("usage : pykoticon  pykota_server_hostname_or_ip_address  localTCPPort\n")
         else :
