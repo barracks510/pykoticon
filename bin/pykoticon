@@ -88,7 +88,10 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
     """My own server class."""
     allow_reuse_address = True
     def __init__(self, frame, printserver, localport, debug=False) :
-        SimpleXMLRPCServer.SimpleXMLRPCServer.__init__(self, ('0.0.0.0', localport))
+        SimpleXMLRPCServer.SimpleXMLRPCServer.__init__(self, \
+                                                       ('0.0.0.0', localport), \
+                                                       SimpleXMLRPCServer.SimpleXMLRPCRequestHandler, \
+                                                       debug)
         self.printServer = printserver
         self.frame = frame
         self.debug = debug
