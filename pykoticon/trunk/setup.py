@@ -50,12 +50,12 @@ setupDictionary = { "name" : "pykoticon",
                     "author" : config.__author__,
                     "author_email" : config.__author_email__,
                     "url" : config.__url__,
-                    "data_files" : [(directory, glob.glob(os.path.join("icons", "*.ico")))],
+                    "data_files" : [(directory,
+                                     glob.glob(os.path.join("icons", "*.ico")))],
                   }
 if withPy2EXE :
-    setupDictionary["windows"] = [os.path.join("bin", "pykoticon")]
-    setupDictionary["data_files"].append((directory, os.path.join("bin", "pykoticon.vbs")))
+    setupDictionary["windows"] = [ os.path.join("bin", "pykoticon") ]
+    setupDictionary["data_files"].append((directory, [os.path.join("bin", "pykoticon.vbs")]))
 else :
     setupDictionary["scripts"] = [os.path.join("bin", "pykoticon")]
-      
 setup(**setupDictionary)
