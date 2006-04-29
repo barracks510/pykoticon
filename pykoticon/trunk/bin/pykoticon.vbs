@@ -18,4 +18,4 @@
 ' $Id$
 '
 set Wshshell= WScript.createobject("wscript.shell")
-retcode = Wshshell.run ("%comspec% /C pykoticon.exe nordine.ateur 7654", 0, FALSE)
+retcode = Wshshell.run ("%comspec% /C pykoticon.exe --port 7654 nordine.ateur", 0, FALSE)
