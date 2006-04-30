@@ -99,6 +99,8 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         self.frame = frame
         self.debug = options.debug
         self.printServers = [ socket.gethostbyname(arg) for arg in arguments ]
+        if "127.0.0.1" not in self.printServers :
+            self.printServers.append("127.0.0.1") # to allow clean shutdown
         loop = threading.Thread(target=self.mainloop)
         loop.start()
         
@@ -217,7 +219,7 @@ class PyKotIcon(wx.Frame):
         self.dialogAnswer = None
         wx.Frame.__init__(self, parent, id, \
                _("PyKotIcon info for %s") % self.getCurrentUserName(), \
-               size = (1, 1), \
+               size = (0, 0), \
                style = wx.FRAME_NO_TASKBAR | wx.NO_FULL_REPAINT_ON_RESIZE)
                      
         self.tbicon = wx.TaskBarIcon()
@@ -225,7 +227,8 @@ class PyKotIcon(wx.Frame):
                                   wx.BITMAP_TYPE_ICO)
         self.redicon = wx.Icon(os.path.join(iconsdir, "pykoticon-red.ico"), \
                                   wx.BITMAP_TYPE_ICO)
-        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+        if isWindows :                          
+            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
         
         wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
         wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
@@ -244,7 +247,7 @@ class PyKotIcon(wx.Frame):
         self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
         
         wx.EVT_ICONIZE(self, self.OnIconify)
-        wx.EVT_CLOSE(self, self.OnClose)
+        wx.EVT_CLOSE(self, self.FakeOnClose)
         self.Show(True)
         
     def getCurrentUserName(self) :
@@ -258,11 +261,13 @@ class PyKotIcon(wx.Frame):
                 return "** Unknown **"
             
     def OnIconify(self, event) :
+        """Iconify/De-iconify the application."""
         if not self.IsIconized() :
             self.Iconize(True)
         self.Hide()
 
     def OnTaskBarActivate(self, event) :
+        """Show the application if it is minimized."""
         if self.IsIconized() :
             self.Iconize(False)
         if not self.IsShown() :
@@ -270,16 +275,38 @@ class PyKotIcon(wx.Frame):
         self.Raise()
 
     def OnClose(self, event) :
+        """Cleanly quit the application."""
         self.closeServer()
         self.menu.Destroy()
         self.tbicon.Destroy()
         self.Destroy()
 
     def OnTaskBarMenu(self, event) :
+        """Open the taskbar menu."""
         self.tbicon.PopupMenu(self.menu)
 
+    def FakeOnClose(self, event) :
+        """React to close from windows corner."""
+        if self.options.allowquit :
+            self.Close()
+        else :
+            self.quitIsForbidden()
+            
     def OnTaskBarClose(self, event) :
-        self.Close()
+        """React to close from the taskbar."""
+        if self.options.allowquit :
+            self.Close()
+        else :
+            self.quitIsForbidden()
+            
+    def quitIsForbidden() :        
+        """Displays a message indicating that quitting the application is not allowed."""
+        message = _("Sorry, this was forbidden by your system administrator.")
+        caption = _("Information")
+        style = wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP
+        dialog = wx.MessageDialog(self, message, caption, style)
+        dialog.ShowModal()
+        dialog.Destroy()
         
     def OnAbout(self, event) :    
         """Displays the about box."""
@@ -322,7 +349,7 @@ class PyKotIcon(wx.Frame):
         """Tells the xml-rpc server to exit."""
         if not self.quitEvent.isSet() :
             self.quitEvent.set()
-        server = xmlrpclib.ServerProxy("http://localhost:%s" % self.port)    
+        server = xmlrpclib.ServerProxy("http://localhost:%s" % self.options.port)    
         try :
             # wake the server with an empty request 
             # for it to see the event object
@@ -336,7 +363,7 @@ class PyKotIcon(wx.Frame):
         """Starts the XML-RPC server."""
         self.quitEvent = threading.Event()
         self.charset = charset
-        self.port = options.port
+        self.options = options
         self.server = MyXMLRPCServer(self, options, arguments)
         
     def UTF8ToUserCharset(self, text) :
