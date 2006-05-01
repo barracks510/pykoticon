@@ -17,5 +17,10 @@
 '
 ' $Id$
 '
+'
+' Edit the last line of this file to add all your print servers
+' hostnames or IP addresses instead of "nordine.ateur" and optionally
+' define another TCP port to listen to.
+'
 set Wshshell= WScript.createobject("wscript.shell")
 retcode = Wshshell.run ("%comspec% /C pykoticon.exe --port 7654 nordine.ateur", 0, FALSE)
