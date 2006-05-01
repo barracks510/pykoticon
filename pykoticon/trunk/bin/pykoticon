@@ -237,11 +237,11 @@ class PyKotIcon(wx.Frame):
         self.TBMENU_RESTORE = wx.NewId()
         self.TBMENU_CLOSE = wx.NewId()
         wx.EVT_MENU(self.tbicon, self.TBMENU_ABOUT, \
-                                          self.OnAbout)
+                                 self.OnAbout)
         wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
-                                          self.OnTaskBarActivate)
+                                 self.OnTaskBarActivate)
         wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
-                                          self.OnTaskBarClose)
+                                 self.OnTaskBarClose)
         self.menu = wx.Menu()
         self.menu.Append(self.TBMENU_ABOUT, _("About"))
         self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
@@ -301,16 +301,19 @@ class PyKotIcon(wx.Frame):
             
     def quitIsForbidden(self) :        
         """Displays a message indicating that quitting the application is not allowed."""
-        message = _("Sorry, this was forbidden by your system administrator.")
-        caption = _("Information")
-        style = wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP
-        dialog = wx.MessageDialog(self, message, caption, style)
-        dialog.ShowModal()
-        dialog.Destroy()
+        # message = _("Sorry, this was forbidden by your system administrator.")
+        # caption = _("Information")
+        # style = wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP
+        # dialog = wx.MessageDialog(self, message, caption, style)
+        # dialog.ShowModal()
+        # dialog.Destroy()
+        pass
         
     def OnAbout(self, event) :    
         """Displays the about box."""
-        dialog = wx.MessageDialog(self, aboutbox % globals(), _("About"), wx.OK | wx.ICON_INFORMATION)
+        dialog = wx.MessageDialog(self, aboutbox % globals(), \
+                                        _("About"), \
+                                        wx.OK | wx.ICON_INFORMATION)
         dialog.ShowModal()
         dialog.Destroy()
         
