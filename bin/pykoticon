@@ -458,7 +458,7 @@ def main() :
                             type="int", 
                             default=7654, 
                             dest="port",
-                            help=_("the TCP port PyKotIcon will listen to, default is %default"))
+                            help=_("the TCP port PyKotIcon will listen to, default is 7654"))
     parser.add_option("-q", "--allowquit", 
                             action="store_true", 
                             dest="allowquit",
