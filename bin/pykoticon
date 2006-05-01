@@ -299,7 +299,7 @@ class PyKotIcon(wx.Frame):
         else :
             self.quitIsForbidden()
             
-    def quitIsForbidden() :        
+    def quitIsForbidden(self) :        
         """Displays a message indicating that quitting the application is not allowed."""
         message = _("Sorry, this was forbidden by your system administrator.")
         caption = _("Information")
