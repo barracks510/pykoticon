@@ -194,14 +194,14 @@ class GenericInputDialog(wx.Dialog) :
                 label = ""
             labelid = wx.NewId()    
             varid = wx.NewId()
-            label = wx.StaticText(self, labelid, label)
+            labelst = wx.StaticText(self, labelid, label)
             if varname.lower().find("password") != -1 :
                 variable = wx.TextCtrl(self, varid, varvalues.get(varname, ""), style=wx.TE_PASSWORD)
             else :
                 variable = wx.TextCtrl(self, varid, varvalues.get(varname, ""))
             self.variables.append(variable)    
             hsizer = wx.BoxSizer(wx.HORIZONTAL)
-            hsizer.Add(label, 0, wx.ALIGN_CENTER | wx.ALIGN_RIGHT | wx.ALL, 5)
+            hsizer.Add(labelst, 0, wx.ALIGN_CENTER | wx.ALIGN_RIGHT | wx.ALL, 5)
             hsizer.Add(variable, 0, wx.ALIGN_CENTER | wx.ALIGN_LEFT | wx.ALL, 5)
             vsizer.Add(hsizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
             
