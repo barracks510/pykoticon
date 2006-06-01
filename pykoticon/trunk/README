@@ -25,7 +25,40 @@ It is meant to be launched whenever the user logs in, and stay in
 the taskbar (depending on the client operating system) until the 
 user closes his session. 
   
-Installation notes will be re-added later.  
+Installation :
+
+  * GNU/Linux and similar :
+  
+    $ cd pykoticon
+    $ python setup.py install
+    
+    Then modify your .xsession file, or the appropriate file depending
+    on your desktop environment, to ensure that the pykoticon command
+    is launched in the background each time your X Window session
+    starts.
+    
+    NB : `pykoticon --help` will give you hints about the expected
+    command line parameters.
+    
+  * MS Windows :  
+  
+    Download pykoticon-x.yy.zip from 
+    
+        http://www.pykota.com/software/pykoticon/download/tarballs/
+        
+    Unzip it into a directory of its own. I usually unzip it into    
+    /var/lib/samba/netlogon/pykoticon/
+    
+    Modify the PYKOTICON.VBS file to include the list of authorized
+    print servers and change other parameters as needed.
+    
+    Ensure that PYKOTICON.VBS is executed each time an user logs
+    in. The easiest way to do this is in STARTUP.CMD :
+    
+      --- CUT ---
+      SET PATH=%PATH%;\\MYSERVER\NETLOGON\PYKOTICON\
+      \\MYSERVER\NETLOGON\PYKOTICON\PYKOTICON.VBS 
+      --- CUT ---
 
 ====================================================================
     
