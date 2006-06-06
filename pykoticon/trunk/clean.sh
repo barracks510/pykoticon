@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# PyKotIcon - an end-user companion for PyKota
+# PyKotIcon - Client side helper for PyKota and other applications
 #
 # (c) 2005 Jerome Alet <alet@librelogiciel.com>
 # This program is free software; you can redistribute it and/or modify
