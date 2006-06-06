@@ -3,7 +3,7 @@
 
 """Packaging and installation script for PyKotIcon."""
 
-# PyKotIcon - Client side helper for PyKota
+# PyKotIcon - Client side helper for PyKota and other applications
 #
 # (c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
 # This program is free software; you can redistribute it and/or modify
