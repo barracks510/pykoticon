@@ -59,6 +59,10 @@ Installation :
       SET PATH=%PATH%;\\MYSERVER\NETLOGON\PYKOTICON\
       \\MYSERVER\NETLOGON\PYKOTICON\PYKOTICON.VBS 
       --- CUT ---
+      
+    NB : if you launch PYKOTICON.EXE directly instead of from
+    PYKOTICON.VBS, a small but disturbing window may appear on 
+    the screen.
 
 ====================================================================
     
