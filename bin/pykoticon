@@ -3,7 +3,7 @@
 
 """PyKotIcon is a generic, networked, cross-platform dialog box manager."""
 
-# PyKotIcon - Client side helper for PyKota
+# PyKotIcon - Client side helper for PyKota and other applications
 #
 # (c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
 # This program is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 #
 #
 
-__version__ = "1.01"
+__version__ = "1.02"
 __author__ = "Jerome Alet"
 __author_email__ = "alet@librelogiciel.com"
 __license__ = "GNU GPL"
@@ -147,6 +147,14 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         """Does nothing, but allows a clean shutdown from the frame itself."""
         return True
         
+    def _dispatch(self, method, params) :    
+        """Ensure that only export_* methods are available."""
+        return getattr(self, "export_%s" % method)(*params)
+        
+    def handle_error(self, request, client_address) :    
+        """Doesn't display an ugly traceback in case an error occurs."""
+        self.logDebug("An exception occured while handling an incoming request from %s:%s" % (client_address[0], client_address[1]))
+        
     def verify_request(self, request, client_address) :
         """Ensures that requests which don't come from the print server are rejected."""
         (client, port) = client_address
@@ -157,10 +165,6 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
             # Unauthorized access !
             self.logDebug("%s rejected." % client)
             return False
-        
-    def _dispatch(self, method, params) :    
-        """Ensure that only export_* methods are available."""
-        return getattr(self, "export_%s" % method)(*params)
         
     def mainloop(self) :
         """XML-RPC Server's main loop."""
@@ -247,7 +251,7 @@ class PyKotIcon(wx.Frame):
         self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
         
         wx.EVT_ICONIZE(self, self.OnIconify)
-        wx.EVT_CLOSE(self, self.FakeOnClose)
+        wx.EVT_CLOSE(self, self.OnClose)
         self.Show(True)
         
     def getCurrentUserName(self) :
@@ -276,22 +280,18 @@ class PyKotIcon(wx.Frame):
 
     def OnClose(self, event) :
         """Cleanly quit the application."""
-        self.closeServer()
-        self.menu.Destroy()
-        self.tbicon.Destroy()
-        self.Destroy()
+        if (event is None) or self.options.allowquit :
+            self.closeServer()
+            self.menu.Destroy()
+            self.tbicon.Destroy()
+            self.Destroy()
+        else :    
+            self.quitIsForbidden()
 
     def OnTaskBarMenu(self, event) :
         """Open the taskbar menu."""
         self.tbicon.PopupMenu(self.menu)
 
-    def FakeOnClose(self, event) :
-        """React to close from windows corner."""
-        if self.options.allowquit :
-            self.Close()
-        else :
-            self.quitIsForbidden()
-            
     def OnTaskBarClose(self, event) :
         """React to close from the taskbar."""
         if self.options.allowquit :
@@ -301,13 +301,12 @@ class PyKotIcon(wx.Frame):
             
     def quitIsForbidden(self) :        
         """Displays a message indicating that quitting the application is not allowed."""
-        # message = _("Sorry, this was forbidden by your system administrator.")
-        # caption = _("Information")
-        # style = wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP
-        # dialog = wx.MessageDialog(self, message, caption, style)
-        # dialog.ShowModal()
-        # dialog.Destroy()
-        pass
+        message = _("Sorry, this was forbidden by your system administrator.")
+        caption = _("Information")
+        style = wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP
+        dialog = wx.MessageDialog(self, message, caption, style)
+        dialog.ShowModal()
+        dialog.Destroy()
         
     def OnAbout(self, event) :    
         """Displays the about box."""
@@ -470,17 +469,6 @@ def main() :
         app = PyKotIconApp()
         app.postInit(charset, options, arguments)
         app.MainLoop()
-    
-    
-def crashed() :    
-    """Minimal crash method."""
-    import traceback
-    lines = []
-    for line in traceback.format_exception(*sys.exc_info()) :
-        lines.extend([l for l in line.split("\n") if l])
-    msg = "ERROR: ".join(["%s\n" % l for l in (["ERROR: PyKotIcon"] + lines)])
-    sys.stderr.write(msg)
-    sys.stderr.flush()
     
     
 if __name__ == '__main__':
