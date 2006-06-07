@@ -37,9 +37,13 @@ except ImportError :
         sys.exit(-1)
     else :    
         directory = os.sep.join(["share", "pykoticon"])
+        mandir = os.sep.join(["share", "man", "man1"])
+        manpages = glob.glob(os.sep.join(["man", "*.1"]))    
+        initialdatafiles = [(mandir, manpages)]
         withPy2EXE = False
 else :        
     directory = "."
+    initialdatafiles = []
     withPy2EXE = True
 
 config = imp.load_source("config", os.path.join("bin", "pykoticon"))
@@ -50,8 +54,8 @@ setupDictionary = { "name" : "pykoticon",
                     "author" : config.__author__,
                     "author_email" : config.__author_email__,
                     "url" : config.__url__,
-                    "data_files" : [(directory,
-                                     glob.glob(os.path.join("icons", "*.ico")))],
+                    "data_files" : initialdatafiles \
+                      + [(directory, glob.glob(os.path.join("icons", "*.ico")))],
                   }
 if withPy2EXE :
     setupDictionary["windows"] = [ os.path.join("bin", "pykoticon") ]
