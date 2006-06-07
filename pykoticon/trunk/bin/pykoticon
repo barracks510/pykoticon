@@ -117,7 +117,7 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         if cacheentry is not None :
             (birth, value) = cacheentry 
             if (time.time() - birth) < self.cacheduration :
-                self.logDebug("Cache hit for %s ---> %s" % (str(key), value))
+                self.logDebug("Cache hit for %s" % str(key))
                 return value # NB : we don't extend the life of this entry
             else :    
                 self.logDebug("Cache expired for %s" % str(key))
@@ -128,7 +128,7 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
     def storeAnswerInCache(self, key, value) :    
         """Stores an entry in the cache."""
         self.cache[key] = (time.time(), value)
-        self.logDebug("Cache store for %s ---> %s" % (str(key), value))
+        self.logDebug("Cache store for %s" % str(key))
         
     def export_askDatas(self, labels, varnames, varvalues) :
         """Asks some textual datas defined by a list of labels, a list of variables' names and a list of variables values in a mapping."""
