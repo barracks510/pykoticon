@@ -21,11 +21,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 TODO, in no particular order :
 
-  - Configurable cache for user credentials when username and
-    password are asked. The cache's duration will only be
-    settable from pknotify to avoid some security issues with
-    "smart" students :-)
-
+    - Find something to do :)
+    
 ============================================================
 
 Please e-mail bugs to: alet@librelogiciel.com (Jerome Alet)

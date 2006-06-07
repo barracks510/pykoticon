@@ -21,8 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 PyKotIcon NEWS :
 
-  - 1.02 (2006-06-06) :
+  - 1.02 (2006-06-07) :
     
+    - Added the --cache command line option to specify the time in
+      seconds during which input forms' content will be cached.
+      This allows people to avoid retyping their username and
+      password for each print job, for example.
+      
     - Now displays an error message when the end user wants to quit
       and it is forbidden.
       

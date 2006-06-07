@@ -98,6 +98,8 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
                                                        options.debug)
         self.frame = frame
         self.debug = options.debug
+        self.cacheduration = options.cache
+        self.cache = {}
         self.printServers = [ socket.gethostbyname(arg) for arg in arguments ]
         if "127.0.0.1" not in self.printServers :
             self.printServers.append("127.0.0.1") # to allow clean shutdown
@@ -109,29 +111,52 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
         if self.debug :
             sys.stderr.write("%s\n" % message)
             
-    def export_quitApplication(self) :    
-        """Makes the application quit."""
-        self.frame.quitEvent.set()
-        wx.CallAfter(self.frame.OnClose, None)
-        return True
+    def getAnswerFromCache(self, key) :
+        """Tries to extract a value from the cache and returns it if still valid."""
+        cacheentry = self.cache.get(key)
+        if cacheentry is not None :
+            (birth, value) = cacheentry 
+            if (time.time() - birth) < self.cacheduration :
+                self.logDebug("Cache hit for %s ---> %s" % (str(key), value))
+                return value # NB : we don't extend the life of this entry
+            else :    
+                self.logDebug("Cache expired for %s" % str(key))
+        else :        
+            self.logDebug("Cache miss for %s" % str(key))
+        return None
+        
+    def storeAnswerInCache(self, key, value) :    
+        """Stores an entry in the cache."""
+        self.cache[key] = (time.time(), value)
+        self.logDebug("Cache store for %s ---> %s" % (str(key), value))
         
     def export_askDatas(self, labels, varnames, varvalues) :
         """Asks some textual datas defined by a list of labels, a list of variables' names and a list of variables values in a mapping."""
         values = {}
         for (key, value) in varvalues.items() :
             values[key] = self.frame.UTF8ToUserCharset(value.data)
-        wx.CallAfter(self.frame.askDatas, [ self.frame.UTF8ToUserCharset(label.data) for label in labels ], \
-                                          varnames, \
-                                          values)
-        # ugly, isn't it ?
-        while self.frame.dialogAnswer is None :
-            time.sleep(0.1)
-        retcode = self.frame.dialogAnswer    
-        for (key, value) in retcode.items() :
-            if key != "isValid" :
-                retcode[key] = xmlrpclib.Binary(self.frame.userCharsetToUTF8(value))
-        self.frame.dialogAnswer = None # prepare for next call, just in case
+        cachekey = tuple(values.items())  
+        retcode = self.getAnswerFromCache(cachekey)
+        if retcode is None :
+            wx.CallAfter(self.frame.askDatas, [ self.frame.UTF8ToUserCharset(label.data) for label in labels ], \
+                                              varnames, \
+                                              values)
+            # ugly, isn't it ?
+            while self.frame.dialogAnswer is None :
+                time.sleep(0.1)
+            retcode = self.frame.dialogAnswer    
+            for (key, value) in retcode.items() :
+                if key != "isValid" :
+                    retcode[key] = xmlrpclib.Binary(self.frame.userCharsetToUTF8(value))
+            self.frame.dialogAnswer = None # prepare for next call, just in case
+            self.storeAnswerInCache(cachekey, retcode)
         return retcode
+        
+    def export_quitApplication(self) :    
+        """Makes the application quit."""
+        self.frame.quitEvent.set()
+        wx.CallAfter(self.frame.OnClose, None)
+        return True
         
     def export_showDialog(self, message, yesno) :
         """Opens a notification or confirmation dialog."""
@@ -251,7 +276,7 @@ class PyKotIcon(wx.Frame):
         
         wx.EVT_ICONIZE(self, self.OnIconify)
         wx.EVT_CLOSE(self, self.OnClose)
-        self.Show(True)
+        self.Show(False)
         
     def getCurrentUserName(self) :
         """Retrieves the current user's name."""
@@ -447,27 +472,37 @@ def main() :
     parser.add_option("-v", "--version", 
                             action="store_true", 
                             dest="version",
-                            help=_("show PyKotIcon's version number and exit"))
+                            help=_("show PyKotIcon's version number and exit."))
+    parser.add_option("-c", "--cache", 
+                            type="int", 
+                            default=0, 
+                            dest="cache",
+                            help=_("the duration of the cache in seconds to keep input forms' datas in memory. Defaults to 0 second, meaning no cache."))
     parser.add_option("-d", "--debug", 
                             action="store_true", 
                             dest="debug",
-                            help=_("activate debug mode"))
+                            help=_("activate debug mode."))
     parser.add_option("-p", "--port", 
                             type="int", 
                             default=7654, 
                             dest="port",
-                            help=_("the TCP port PyKotIcon will listen to, default is 7654"))
+                            help=_("the TCP port PyKotIcon will listen to, default is 7654."))
     parser.add_option("-q", "--allowquit", 
                             action="store_true", 
                             dest="allowquit",
-                            help=_("allow the end user to close the application"))
+                            help=_("allow the end user to close the application."))
     (options, arguments) = parser.parse_args()
     if options.version :
         print "PyKotIcon v%(__version__)s" % globals()
     else :
-        app = PyKotIconApp()
-        app.postInit(charset, options, arguments)
-        app.MainLoop()
+        if not (1024 <= options.port <= 65535) :
+            sys.stderr.write(_("The TCP port number specified for --port must be between 1024 and 65535.\n"))
+        elif not (0 <= options.cache <= 86400) :    
+            sys.stderr.write(_("The duration specified for --cache must be between 0 and 86400 seconds.\n"))
+        else :    
+            app = PyKotIconApp()
+            app.postInit(charset, options, arguments)
+            app.MainLoop()
     
     
 if __name__ == '__main__':
