@@ -231,8 +231,7 @@ class PyKotIcon(wx.Frame):
                                   wx.BITMAP_TYPE_ICO)
         self.redicon = wx.Icon(os.path.join(iconsdir, "pykoticon-red.ico"), \
                                   wx.BITMAP_TYPE_ICO)
-        if isWindows :                          
-            self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
         
         wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
         wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
