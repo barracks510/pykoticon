@@ -170,7 +170,7 @@ Usage :
             anyway.
             
             
-IMPORTANT : PyKotIcon doesn't currently support encrypted connections,            
+IMPORTANT : PyKotIcon doesn't currently support encrypted connexions,            
 so if you're afraid of sensitive information flying in the clear
 over the nework, you should probably install a transparent secure 
 tunneling software like stunnel on both sides of each connection.
