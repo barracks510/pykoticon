@@ -137,7 +137,7 @@ class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
             values[key] = self.frame.UTF8ToUserCharset(value.data)
         cachekey = tuple(values.items())  
         retcode = self.getAnswerFromCache(cachekey)
-        if retcode is None :
+        if (retcode is None) or (not retcode["isValid"]) :
             wx.CallAfter(self.frame.askDatas, [ self.frame.UTF8ToUserCharset(label.data) for label in labels ], \
                                               varnames, \
                                               values)
