@@ -28,9 +28,8 @@ PyKotIcon NEWS :
       This allows people to avoid retyping their username and
       password for each print job, for example.
       
-    - Now displays an error message when the end user wants to quit
-      and it is forbidden.
-      
+    - Doesn't display the Quit menu anymore if not allowed.
+    
     - Doesn't display the ugly traceback anymore when the client  
       disconnects before the server has sent the answer back
       (pknotify --timeout).
