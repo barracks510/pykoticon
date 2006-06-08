@@ -163,7 +163,7 @@ Usage :
           - A special key named 'isValid' gives access to a boolean
             value in the associative array. If the value is True,
             then the input fields' contents are valid. If the value
-            is False, then was the user typed in the input fields
+            is False, then what the user typed in the input fields
             has to be discarded because, for example, the user
             closed the form without validing his entries.
             In this case, all the other values are empty strings
