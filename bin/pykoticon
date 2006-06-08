@@ -251,35 +251,6 @@ class PyKotIcon(wx.Frame):
                size = (0, 0), \
                style = wx.FRAME_NO_TASKBAR | wx.NO_FULL_REPAINT_ON_RESIZE)
                      
-        self.tbicon = wx.TaskBarIcon()
-        self.greenicon = wx.Icon(os.path.join(iconsdir, "pykoticon-green.ico"), \
-                                  wx.BITMAP_TYPE_ICO)
-        self.redicon = wx.Icon(os.path.join(iconsdir, "pykoticon-red.ico"), \
-                                  wx.BITMAP_TYPE_ICO)
-        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-        
-        wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
-        wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
-        
-        self.TBMENU_ABOUT = wx.NewId()
-        self.TBMENU_RESTORE = wx.NewId()
-        self.TBMENU_CLOSE = wx.NewId()
-        wx.EVT_MENU(self.tbicon, self.TBMENU_ABOUT, \
-                                 self.OnAbout)
-        wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
-                                 self.OnTaskBarActivate)
-        wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
-                                 self.OnTaskBarClose)
-        self.menu = wx.Menu()
-        self.menu.Append(self.TBMENU_ABOUT, _("About"))
-        self.menu.Append(self.TBMENU_CLOSE, _("Quit"))
-        
-        wx.EVT_ICONIZE(self, self.OnIconify)
-        wx.EVT_CLOSE(self, self.OnClose)
-        self.Show(True)
-        self.Iconize()
-        self.Hide()
-        
     def getCurrentUserName(self) :
         """Retrieves the current user's name."""
         if isWindows :
@@ -306,13 +277,16 @@ class PyKotIcon(wx.Frame):
 
     def OnClose(self, event) :
         """Cleanly quit the application."""
-        if (event is None) or self.options.allowquit :
+        if (event is None) \
+           or self.options.allowquit :
             self.closeServer()
             self.menu.Destroy()
             self.tbicon.Destroy()
             self.Destroy()
+            return True
         else :    
-            self.quitIsForbidden()
+            # self.quitIsForbidden()
+            return False
 
     def OnTaskBarMenu(self, event) :
         """Open the taskbar menu."""
@@ -320,10 +294,7 @@ class PyKotIcon(wx.Frame):
 
     def OnTaskBarClose(self, event) :
         """React to close from the taskbar."""
-        if self.options.allowquit :
-            self.Close()
-        else :
-            self.quitIsForbidden()
+        self.Close()
             
     def quitIsForbidden(self) :        
         """Displays a message indicating that quitting the application is not allowed."""
@@ -388,9 +359,39 @@ class PyKotIcon(wx.Frame):
         
     def postInit(self, charset, options, arguments) :    
         """Starts the XML-RPC server."""
-        self.quitEvent = threading.Event()
         self.charset = charset
         self.options = options
+        
+        self.tbicon = wx.TaskBarIcon()
+        self.greenicon = wx.Icon(os.path.join(iconsdir, "pykoticon-green.ico"), \
+                                  wx.BITMAP_TYPE_ICO)
+        self.redicon = wx.Icon(os.path.join(iconsdir, "pykoticon-red.ico"), \
+                                  wx.BITMAP_TYPE_ICO)
+        self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
+        
+        wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
+        wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
+        
+        self.TBMENU_ABOUT = wx.NewId()
+        self.TBMENU_RESTORE = wx.NewId()
+        self.TBMENU_CLOSE = wx.NewId()
+        wx.EVT_MENU(self.tbicon, self.TBMENU_ABOUT, \
+                                 self.OnAbout)
+        wx.EVT_MENU(self.tbicon, self.TBMENU_RESTORE, \
+                                 self.OnTaskBarActivate)
+        wx.EVT_MENU(self.tbicon, self.TBMENU_CLOSE, \
+                                 self.OnTaskBarClose)
+        self.menu = wx.Menu()
+        self.menu.Append(self.TBMENU_ABOUT, _("About"), _("About this software"))
+        if options.allowquit :
+            self.menu.Append(self.TBMENU_CLOSE, _("Quit"), \
+                                                _("Exit the application"))
+        wx.EVT_ICONIZE(self, self.OnIconify)
+        wx.EVT_CLOSE(self, self.OnClose)
+        self.Show(True)
+        self.Hide()
+        
+        self.quitEvent = threading.Event()
         self.server = MyXMLRPCServer(self, options, arguments)
         
     def UTF8ToUserCharset(self, text) :
