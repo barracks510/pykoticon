@@ -276,7 +276,9 @@ class PyKotIcon(wx.Frame):
         
         wx.EVT_ICONIZE(self, self.OnIconify)
         wx.EVT_CLOSE(self, self.OnClose)
-        self.Show(False)
+        self.Show(True)
+        self.Iconize()
+        self.Hide()
         
     def getCurrentUserName(self) :
         """Retrieves the current user's name."""
