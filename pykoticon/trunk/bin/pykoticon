@@ -358,7 +358,6 @@ class PyKotIcon(wx.Frame):
         
     def askDatas(self, labels, varnames, varvalues) :
         """Opens a dialog box asking for data entry."""
-        # use it this way : self.askDatas(["Username", "Password", "Billing code"], ["username", "password", "billingcode"])
         self.dialogAnswer = None
         dialog = GenericInputDialog(self, wx.ID_ANY, labels, varnames, varvalues)
         retvalues = {}
