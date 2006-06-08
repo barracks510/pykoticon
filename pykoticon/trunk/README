@@ -78,8 +78,9 @@ Installation :
 
 Usage :
 
-  PyKotIcon is often used as a client side companion for the PyKota
-  print accounting solution, but in reality PyKotIcon is completely
+  PyKotIcon is often used as a client side companion of the PyKota
+  print accounting solution, with PyKota's pknotify command line tool
+  acting as a PyKotIcon client. But in reality PyKotIcon is completely
   independant of PyKota, and can be used from any application
   which can do remote procedure calls over XML-RPC.
   
@@ -169,6 +170,11 @@ Usage :
             anyway.
             
             
+IMPORTANT : PyKotIcon doesn't currently support encrypted connections,            
+so if you're afraid of sensitive information flying in the clear
+over the nework, you should probably install a transparent secure 
+tunneling software like stunnel on both sides of each connection.
+
 ====================================================================
     
 Please e-mail bugs to the PyKota mailing list at : pykota@librelogiciel.com
