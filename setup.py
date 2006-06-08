@@ -60,6 +60,7 @@ setupDictionary = { "name" : "pykoticon",
 if withPy2EXE :
     setupDictionary["windows"] = [ os.path.join("bin", "pykoticon") ]
     setupDictionary["data_files"].append((directory, [os.path.join("bin", "pykoticon.vbs")]))
+    setupDictionary["data_files"].append((directory, [os.path.join(".", "COPYING")]))
 else :
     setupDictionary["scripts"] = [os.path.join("bin", "pykoticon")]
 setup(**setupDictionary)
