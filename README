@@ -108,7 +108,7 @@ Usage :
         - message : a Binary XML-RPC object representing an UTF-8 encoded 
           character string which will be displayed to the end user. 
           This string can contain literal "\n" sequences which will 
-          be automatically expanded into a line break by PyKotIcon.
+          be automatically expanded into line breaks by PyKotIcon.
           
         - confirmation : a boolean value indicating if the user will  
           be given the choice to valid or cancel (True), or only
