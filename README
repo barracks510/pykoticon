@@ -72,6 +72,66 @@ Installation :
     PYKOTICON.VBS, a small but disturbing window may appear on 
     the screen.
 
+
+Usage :
+
+  PyKotIcon is often used as a client side companion for the PyKota
+  print accounting solution, but in reality PyKotIcon is completely
+  independant of PyKota, and can be used from any application
+  which can do remote procedure calls over XML-RPC.
+  
+  PyKotIcon exposes 4 of its methods over XML-RPC, here they are :
+  
+    - nop :
+    
+      This methods does exactly nothing :)
+      
+      - Input : No argument.
+      
+      - Output : returns the True boolean value.
+      
+    - quitApplication :  
+    
+      This method causes the PyKotIcon application to exit.
+      
+      - Input : No argument.
+      
+      - Output : returns the True boolean value.
+          
+    - showDialog :  
+   
+      This methods displays an informational message, and returns
+      the choice the user made, if any.
+       
+      - Input : 
+        
+        - message : a Binary XML-RPC object representing an UTF-8 encoded 
+          character string which will be displayed to the end user. 
+          This string can contain literal "\n" sequences which will 
+          be automatically expanded into a line break by PyKotIcon.
+          
+        - confirmation : a boolean value indicating if the user will  
+          be given the choice to valid or cancel (True), or only
+          to valid (False) the dialog box.
+            
+      - Output :      
+      
+        - the literal string "OK" if the user clicked on the OK button,
+          else the literal string "CANCEL". The latter is only possible
+          if the method was called with its second parameter set to
+          True.
+        
+    - askDatas :      
+    
+      This method can generate an input form and return what the user
+      entered in the different fields.
+      
+      - Input :
+      
+        
+      
+      - Output :
+
 ====================================================================
     
 Please e-mail bugs to the PyKota mailing list at : pykota@librelogiciel.com
