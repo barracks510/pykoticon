@@ -73,6 +73,9 @@ Installation :
     the screen.
 
 
+====================================================================
+
+
 Usage :
 
   PyKotIcon is often used as a client side companion for the PyKota
@@ -128,10 +131,44 @@ Usage :
       
       - Input :
       
-        
+        - An array of labels, one label per input field in the 
+          form to be created. Each label in the list is passed as
+          a Binary XML-RPC object representing an UTF-8 encoded
+          character string.
+          
+        - An array of variables names, one name per input field in
+          the form to be created. Each name in the list is passed
+          as an ASCII encoded character string.
+          
+        - An array of initial values, one possibly empty value per  
+          input field in the form to be created. Each initial value
+          in the list is passed as a Binary XML-RPC object representing
+          an UTF-8 encoded character string.
       
       - Output :
+      
+        - An associative array (e.g. Python mapping) containing the
+          variables names as keys and the variables' contents as
+          values in the following format :
+          
+          - Each key is an ASCII encoded character string representing
+            the name of a variable to ask which was passed from the 
+            caller.
+            
+          - Each value is a Binary XML-RPC object representing an UTF-8  
+            encoded character string, itself being the result of user
+            input in the form's field for this particular variable.
 
+          - A special key named 'isValid' gives access to a boolean
+            value in the associative array. If the value is True,
+            then the input fields' contents are valid. If the value
+            is False, then was the user typed in the input fields
+            has to be discarded because, for example, the user
+            closed the form without validing his entries.
+            In this case, all the other values are empty strings
+            anyway.
+            
+            
 ====================================================================
     
 Please e-mail bugs to the PyKota mailing list at : pykota@librelogiciel.com
