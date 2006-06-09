@@ -22,7 +22,7 @@
 #
 #
 
-__version__ = "1.02"
+__version__ = "1.03"
 __author__ = "Jerome Alet"
 __author_email__ = "alet@librelogiciel.com"
 __license__ = "GNU GPL"

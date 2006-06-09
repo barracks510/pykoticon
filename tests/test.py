@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: ISO-8859-15 -*-
 
-# PyKotIcon - an end-user companion for PyKota
+# PyKotIcon - Client side helper for PyKota and other applications
 #
 # (c) 2003, 2004, 2005, 2006 Jerome Alet <alet@librelogiciel.com>
 # This program is free software; you can redistribute it and/or modify
@@ -22,49 +22,73 @@
 #
 #
 
+"""This test program demonstrates the functionnalities of PyKotIcon.
+
+Launch pykoticon with no arguments on the same host, then launch
+this test program this way :
+
+        $ ./test.py localhost 7654
+
+Then you should see the demonstration begin.
+
+Please send bug reports or feedback to : alet@librelogiciel.com"""
+
 import sys
-import os
-import time
+import socket
 import xmlrpclib
+
 
 def main(arguments) :
     """Main function."""
-    printername = os.environ.get("PYKOTAPRINTERNAME", "Unknown")
-    username = os.environ.get("PYKOTAUSERNAME", "Unknown")
-    jobid = os.environ.get("PYKOTAJOBID", "Unknown")
-    jobtitle = os.environ.get("PYKOTATITLE", "Unknown")
-    jobsize = os.environ.get("PYKOTAPRECOMPUTEDJOBSIZE", "Unknown")
-    billingcode = os.environ.get("PYKOTAJOBBILLING", "")
-    if len(arguments) < 3 :
-        message = """Hello %(username)s,
-        
-You sent job %(jobid)s (%(jobtitle)s) to printer %(printername)s.
-
-This job seems to be %(jobsize)s pages long. 
-
-Do you really want to print it ?""" % locals()
-        yesno = True
-    else :
-        message = "\n".join(arguments[2:])
-        yesno = False
-
+    # Opens the connection to the PyKotIcon server :
     server = xmlrpclib.ServerProxy("http://%s:%s" % (arguments[0], arguments[1]))
-    #result = server.showDialog(xmlrpclib.Binary(message), yesno)
-    #"""
-    result = server.askDatas([xmlrpclib.Binary(v) for v in ["Username", "Password", "Billing code"]], \
-                             ["username", "password", "billingcode"], \
-                             {"username": xmlrpclib.Binary(username), \
+    
+    # Now display something on the PyKotIcon host :
+    message1 = "You are about to test PyKotIcon\n\nPyKotIcon is really great software !"
+    server.showDialog(xmlrpclib.Binary(message1.encode("UTF-8")), False)
+    
+    # Now ask the end user if he really wants to do this : 
+    message2 = "Are you sure you want to do this ?"
+    result = server.showDialog(xmlrpclib.Binary(message2.encode("UTF-8")), True)
+    print "The remote user said : %s" % result
+    
+    # Displays the answer back :
+    answer = "You have clicked on the %s button" % result
+    server.showDialog(xmlrpclib.Binary(answer.encode("UTF-8")), False)
+    
+    # Now we will ask some datas : 
+    result = server.askDatas([xmlrpclib.Binary(v) for v in ["Username", "Password", "Country"]], \
+                             ["username", "password", "country"], \
+                             {"username": xmlrpclib.Binary(""), \
                               "password": xmlrpclib.Binary(""), \
-                              "billingcode" : xmlrpclib.Binary(billingcode)})
-    #"""                          
-    #server.quitApplication()
+                              "country" : xmlrpclib.Binary("")})
     if result["isValid"] :
-        print "\n".join(["%s => '%s'" % (k, v.data) for (k, v) in result.items() if k != "isValid"])
+        print "Answers :"
+        print "\n".join(["\t%s => '%s'" % (k, v.data) for (k, v) in result.items() if k != "isValid"])
+        answer = "You answered :\n%s" % "\n".join(["%s => '%s'" % (k, v.data) for (k, v) in result.items() if k != "isValid"])
+        server.showDialog(xmlrpclib.Binary(answer.encode("UTF-8")), False)
     else :    
-        print "the end user closed the dialog box !"
+        print "The answers are not valid."
+        
+    # Now do nothing :    
+    server.nop()
+        
+    # Finally we will cause PyKotIcon to die
+    message3 = "As soon as you'll click on the button below, PyKotIcon will die."
+    server.showDialog(xmlrpclib.Binary(message3.encode("UTF-8")), False)
+    server.quitApplication()
+    
+    # That's all folks !
+    print
+    print "This demo is finished. Did you like it ?"
         
 if __name__ == "__main__" :
     if len(sys.argv) < 3 :
-        sys.stderr.write("usage : %s printing_client_hostname_or_ip_address printing_client_TCPPort\n" % sys.argv[0])
+        sys.stderr.write("usage : %s pykoticon_hostname_or_ip_address pykoticon_TCPPort\n" % sys.argv[0])
     else :    
-        main(sys.argv[1:])
+        try :
+            main(sys.argv[1:])
+        except socket.error, msg :    
+            sys.stderr.write("ERROR : Network error : %s\n" % msg)
+            sys.stderr.write("Are you sure that PyKotIcon is running and accepts incoming connections ?\n")
+            
