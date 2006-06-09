@@ -27,7 +27,7 @@
 Launch pykoticon with no arguments on the same host, then launch
 this test program this way :
 
-        $ ./test.py localhost 7654
+        $ python ./test.py localhost 7654
 
 Then you should see the demonstration begin.
 
