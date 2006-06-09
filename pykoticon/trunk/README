@@ -144,9 +144,10 @@ Usage :
           particular field's input box will be visually protected 
           with * in place of the characters typed during input.
           
-        - An array of initial values, one possibly empty value per  
-          input field in the form to be created. Each initial value
-          in the list is passed as a Binary XML-RPC object representing
+        - An associative array (e.g. Python mapping) of initial values. 
+          Each key is a variable name which must be present in the list
+          above, and each value is a possibly empty initial content,
+          which will be passed as a Binary XML-RPC object representing 
           an UTF-8 encoded character string.
       
       - Output :
