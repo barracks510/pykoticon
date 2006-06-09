@@ -139,7 +139,10 @@ Usage :
           
         - An array of variables names, one name per input field in
           the form to be created. Each name in the list is passed
-          as an ASCII encoded character string.
+          as an ASCII encoded character string. 
+          IMPORTANT : if one of these names is 'password' then this
+          particular field's input box will be visually protected 
+          with * in place of the characters typed during input.
           
         - An array of initial values, one possibly empty value per  
           input field in the form to be created. Each initial value
@@ -165,7 +168,7 @@ Usage :
             then the input fields' contents are valid. If the value
             is False, then what the user typed in the input fields
             has to be discarded because, for example, the user
-            closed the form without validing his entries.
+            closed the form without validating his entries.
             In this case, all the other values are empty strings
             anyway.
             
