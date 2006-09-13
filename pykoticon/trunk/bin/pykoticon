@@ -470,7 +470,7 @@ def main() :
         pass
     charset = os.environ.get("CHARSET") or localecharset or "ISO-8859-15"
     
-    parser = optparse.OptionParser(usage="usage : pykoticon [options] server1 [server2 ...]")
+    parser = optparse.OptionParser(usage="pykoticon [options] server1 [server2 ...]")
     parser.add_option("-v", "--version", 
                             action="store_true", 
                             dest="version",
