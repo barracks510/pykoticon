@@ -23,6 +23,8 @@ PyKotIcon NEWS :
 
   - 1.03 (2006-06-09) :
     
+    - Fixed a focus problem.
+    
     - Rewrote the tests/test.py program to give a better
       experience to testers.
       
