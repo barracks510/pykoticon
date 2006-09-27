@@ -236,10 +236,13 @@ class GenericInputDialog(wx.Dialog) :
             
         okbutton = wx.Button(self, wx.ID_OK, "OK")    
         vsizer.Add(okbutton, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-        
+        if self.variables :
+            self.variables[0].SetFocus()
         self.SetAutoLayout(True)
         self.SetSizerAndFit(vsizer)
         self.Layout()
+        self.Show(True)
+        self.Raise()
         
         
 class PyKotIcon(wx.Frame):
