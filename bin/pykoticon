@@ -241,8 +241,6 @@ class GenericInputDialog(wx.Dialog) :
         self.SetAutoLayout(True)
         self.SetSizerAndFit(vsizer)
         self.Layout()
-        self.Show(True)
-        self.Raise()
         
         
 class PyKotIcon(wx.Frame):
@@ -313,6 +311,7 @@ class PyKotIcon(wx.Frame):
         dialog = wx.MessageDialog(self, aboutbox % globals(), \
                                         _("About"), \
                                         wx.OK | wx.ICON_INFORMATION)
+        dialog.Raise()                                        
         dialog.ShowModal()
         dialog.Destroy()
         
@@ -327,6 +326,7 @@ class PyKotIcon(wx.Frame):
             style = wx.OK | wx.ICON_INFORMATION
         style |= wx.STAY_ON_TOP    
         dialog = wx.MessageDialog(self, message, caption, style)
+        dialog.Raise()
         self.dialogAnswer = ((dialog.ShowModal() == wx.ID_NO) and "CANCEL") or "OK"
         dialog.Destroy()
         
@@ -334,6 +334,7 @@ class PyKotIcon(wx.Frame):
         """Opens a dialog box asking for data entry."""
         self.dialogAnswer = None
         dialog = GenericInputDialog(self, wx.ID_ANY, labels, varnames, varvalues)
+        dialog.Raise()
         retvalues = {}
         if dialog.ShowModal() == wx.ID_OK :
             retvalues["isValid"] = True
@@ -414,16 +415,10 @@ class PyKotIcon(wx.Frame):
         """Converts from user's charset to UTF-8."""
         if text is not None :
             try :
-                # We don't necessarily trust the default charset, because
-                # xprint sends us titles in UTF-8 but CUPS gives us an ISO-8859-1 charset !
-                # So we first try to see if the text is already in UTF-8 or not, and
-                # if it is, we delete characters which can't be converted to the user's charset,
-                # then convert back to UTF-8. PostgreSQL 7.3.x used to reject some unicode characters,
-                # this is fixed by the ugly line below :
-                return text.decode("UTF-8").encode(self.charset, "replace").decode(self.charset).encode("UTF-8", "replace")
+                return text.decode(self.charset).encode("UTF-8")
             except (UnicodeError, AttributeError) :
                 try :
-                    return text.decode(self.charset).encode("UTF-8", "replace") 
+                    return text.decode(self.charset, "replace").encode("UTF-8") 
                 except (UnicodeError, AttributeError) :    
                     try :
                         # Maybe already in Unicode
@@ -447,31 +442,25 @@ class PyKotIconApp(wx.App):
         
 def main() :
     """Program's entry point."""
+    # locale stuff
     try :
-        locale.setlocale(locale.LC_ALL, "")
+        locale.setlocale(locale.LC_ALL, ("", None))
     except (locale.Error, IOError) :
-        sys.stderr.write("Problem while setting locale.\n")
-    try :
-        gettext.install("pykoticon")
-    except :
-        gettext.NullTranslations().install()
-        
-    localecharset = None
+        locale.setlocale(locale.LC_ALL, None)
+    (language, charset) = locale.getlocale()
+    language = language or "C"
+    charset = charset or locale.getpreferredencoding()
+    
+    # translation stuff
     try :
         try :
-            localecharset = locale.nl_langinfo(locale.CODESET)
-        except AttributeError :    
-            try :
-                localecharset = locale.getpreferredencoding()
-            except AttributeError :    
-                try :
-                    localecharset = locale.getlocale()[1]
-                    localecharset = localecharset or locale.getdefaultlocale()[1]
-                except ValueError :    
-                    pass        # Unknown locale, strange...
-    except locale.Error :            
-        pass
-    charset = os.environ.get("CHARSET") or localecharset or "ISO-8859-15"
+            trans = gettext.translation("pykoticon", languages=["%s.%s" % (language, charset)], codeset=charset)
+        except TypeError : # Python <2.4
+            trans = gettext.translation("pykoticon", languages=["%s.%s" % (language, charset)])
+        trans.install()
+    except :
+        gettext.NullTranslations().install()
+    
     
     parser = optparse.OptionParser(usage="pykoticon [options] server1 [server2 ...]")
     parser.add_option("-v", "--version", 
