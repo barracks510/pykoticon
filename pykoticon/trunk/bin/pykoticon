@@ -40,6 +40,8 @@ import socket
 import threading
 import xmlrpclib
 import SimpleXMLRPCServer
+import SocketServer
+
 try :
     import optparse
 except ImportError :    
@@ -87,15 +89,23 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA."""
 
+
+class ThreadedXMLRPCServer(SocketServer.ThreadingTCPServer, SimpleXMLRPCServer.SimpleXMLRPCDispatcher) :
+    """Base class to have a threaded XMLRPC Server."""
+    def __init__(self, addr, requestHandler=SimpleXMLRPCServer.SimpleXMLRPCRequestHandler, logRequests=False) :
+        """Imitate what is in SimpleXMLRPCServer.py but with a threaded TCP server instead."""
+        self.logRequests = logRequests
+        SimpleXMLRPCServer.SimpleXMLRPCDispatcher.__init__(self)
+        SocketServer.ThreadingTCPServer.__init__(self, addr, requestHandler)
         
-class MyXMLRPCServer(SimpleXMLRPCServer.SimpleXMLRPCServer) :
+class MyXMLRPCServer(ThreadedXMLRPCServer) :
     """My own server class."""
     allow_reuse_address = True
     def __init__(self, frame, options, arguments) :
-        SimpleXMLRPCServer.SimpleXMLRPCServer.__init__(self, \
-                                                       ('0.0.0.0', options.port), \
-                                                       SimpleXMLRPCServer.SimpleXMLRPCRequestHandler, \
-                                                       options.debug)
+        ThreadedXMLRPCServer.__init__(self, \
+                                      ('0.0.0.0', options.port), \
+                                      SimpleXMLRPCServer.SimpleXMLRPCRequestHandler, \
+                                      options.debug)
         self.frame = frame
         self.debug = options.debug
         self.cacheduration = options.cache
