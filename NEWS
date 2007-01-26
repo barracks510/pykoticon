@@ -21,8 +21,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 PyKotIcon NEWS :
 
-  - 1.03 (2006-06-09) :
+  - 1.03 (2007-01-26) :
     
+    - Can now accept several requests concurrently, which may
+      help with terminal servers.
+      
     - Fixed a focus problem.
     
     - Rewrote the tests/test.py program to give a better
