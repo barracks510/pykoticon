@@ -21,6 +21,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 TODO, in no particular order :
 
+    - Add a way to provide an additional text when using 
+      pknotify --ask.
+      
+    - Don't display anything or even initialize the graphical interface  
+      until an incoming connection is received : this will allow
+      a single instance to be launched and choose its display
+      at connection time for use on terminal servers.
+      
     - SSL or other encryption support.
     
     - Fix focus problem reported by some people.
