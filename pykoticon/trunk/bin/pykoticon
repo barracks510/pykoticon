@@ -95,7 +95,10 @@ class ThreadedXMLRPCServer(SocketServer.ThreadingTCPServer, SimpleXMLRPCServer.S
     def __init__(self, addr, requestHandler=SimpleXMLRPCServer.SimpleXMLRPCRequestHandler, logRequests=False) :
         """Imitate what is in SimpleXMLRPCServer.py but with a threaded TCP server instead."""
         self.logRequests = logRequests
-        SimpleXMLRPCServer.SimpleXMLRPCDispatcher.__init__(self)
+        try :
+            SimpleXMLRPCServer.SimpleXMLRPCDispatcher.__init__(self)
+        except TypeError :    
+            SimpleXMLRPCServer.SimpleXMLRPCDispatcher.__init__(self, False, None)
         SocketServer.ThreadingTCPServer.__init__(self, addr, requestHandler)
         
 class MyXMLRPCServer(ThreadedXMLRPCServer) :
