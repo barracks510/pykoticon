@@ -267,13 +267,13 @@ class PyKotIcon(wx.Frame):
                      
     def getCurrentUserName(self) :
         """Retrieves the current user's name."""
-        if isWindows :
-            return win32api.GetUserName()
-        else :    
-            try :
+        try :
+            if isWindows :
+                return win32api.GetUserName()
+            else :    
                 return pwd.getpwuid(os.geteuid())[0]
-            except :
-                return "** Unknown **"
+        except :
+            return "** Unknown **"
             
     def OnIconify(self, event) :
         """Iconify/De-iconify the application."""
