@@ -29,6 +29,9 @@ TODO, in no particular order :
       a single instance to be launched and choose its display
       at connection time for use on terminal servers.
       
+    - Add a command line parameter to control the window's modal/modeless  
+      mode. The default will not be modal in any case.
+      
     - SSL or other encryption support.
     
     - Fix focus problem reported by some people.
