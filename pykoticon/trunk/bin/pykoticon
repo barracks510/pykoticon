@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# -*- coding: ISO-8859-15 -*-
+# -*- coding: iso-8859-15 -*-
 
 """PyKotIcon is a generic, networked, cross-platform dialog box manager."""
 
@@ -15,7 +15,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
@@ -44,7 +44,7 @@ import SocketServer
 
 try :
     import optparse
-except ImportError :    
+except ImportError :
     sys.stderr.write("You need Python v2.3 or higher for PyKotIcon to work.\nAborted.\n")
     sys.exit(-1)
 
@@ -52,22 +52,22 @@ if sys.platform == "win32" :
     isWindows = True
     try :
         import win32api
-    except ImportError :    
+    except ImportError :
         raise ImportError, "Mark Hammond's Win32 Extensions are missing. Please install them."
-    else :    
+    else :
         iconsdir = os.path.split(sys.argv[0])[0]
-else :        
+else :
     isWindows = False
     iconsdir = "/usr/share/pykoticon"   # TODO : change this
     import pwd
-    
-try :    
+
+try :
     import wx
     hasWxPython = True
-except ImportError :    
+except ImportError :
     hasWxPython = False
     raise ImportError, "wxPython is missing. Please install it."
-    
+
 aboutbox = """PyKotIcon v%(__version__)s (c) 2003-2006 %(__author__)s - %(__author_email__)s
 
 PyKotIcon is generic, networked, cross-platform dialog box manager.
@@ -97,10 +97,10 @@ class ThreadedXMLRPCServer(SocketServer.ThreadingTCPServer, SimpleXMLRPCServer.S
         self.logRequests = logRequests
         try :
             SimpleXMLRPCServer.SimpleXMLRPCDispatcher.__init__(self)
-        except TypeError :    
+        except TypeError :
             SimpleXMLRPCServer.SimpleXMLRPCDispatcher.__init__(self, False, None)
         SocketServer.ThreadingTCPServer.__init__(self, addr, requestHandler)
-        
+
 class MyXMLRPCServer(ThreadedXMLRPCServer) :
     """My own server class."""
     allow_reuse_address = True
@@ -118,37 +118,37 @@ class MyXMLRPCServer(ThreadedXMLRPCServer) :
             self.printServers.append("127.0.0.1") # to allow clean shutdown
         loop = threading.Thread(target=self.mainloop)
         loop.start()
-        
-    def logDebug(self, message) :    
+
+    def logDebug(self, message) :
         """Logs a debug message if debug mode is active."""
         if self.debug :
             sys.stderr.write("%s\n" % message)
-            
+
     def getAnswerFromCache(self, key) :
         """Tries to extract a value from the cache and returns it if still valid."""
         cacheentry = self.cache.get(key)
         if cacheentry is not None :
-            (birth, value) = cacheentry 
+            (birth, value) = cacheentry
             if (time.time() - birth) < self.cacheduration :
                 self.logDebug("Cache hit for %s" % str(key))
                 return value # NB : we don't extend the life of this entry
-            else :    
+            else :
                 self.logDebug("Cache expired for %s" % str(key))
-        else :        
+        else :
             self.logDebug("Cache miss for %s" % str(key))
         return None
-        
-    def storeAnswerInCache(self, key, value) :    
+
+    def storeAnswerInCache(self, key, value) :
         """Stores an entry in the cache."""
         self.cache[key] = (time.time(), value)
         self.logDebug("Cache store for %s" % str(key))
-        
+
     def export_askDatas(self, labels, varnames, varvalues) :
         """Asks some textual datas defined by a list of labels, a list of variables' names and a list of variables values in a mapping."""
         values = {}
         for (key, value) in varvalues.items() :
             values[key] = self.frame.UTF8ToUserCharset(value.data)
-        cachekey = tuple(values.items())  
+        cachekey = tuple(values.items())
         retcode = self.getAnswerFromCache(cachekey)
         if (retcode is None) or (not retcode["isValid"]) :
             wx.CallAfter(self.frame.askDatas, [ self.frame.UTF8ToUserCharset(label.data) for label in labels ], \
@@ -157,42 +157,42 @@ class MyXMLRPCServer(ThreadedXMLRPCServer) :
             # ugly, isn't it ?
             while self.frame.dialogAnswer is None :
                 time.sleep(0.1)
-            retcode = self.frame.dialogAnswer    
+            retcode = self.frame.dialogAnswer
             for (key, value) in retcode.items() :
                 if key != "isValid" :
                     retcode[key] = xmlrpclib.Binary(self.frame.userCharsetToUTF8(value))
             self.frame.dialogAnswer = None # prepare for next call, just in case
             self.storeAnswerInCache(cachekey, retcode)
         return retcode
-        
-    def export_quitApplication(self) :    
+
+    def export_quitApplication(self) :
         """Makes the application quit."""
         self.frame.quitEvent.set()
         wx.CallAfter(self.frame.OnClose, None)
         return True
-        
+
     def export_showDialog(self, message, yesno) :
         """Opens a notification or confirmation dialog."""
         wx.CallAfter(self.frame.showDialog, self.frame.UTF8ToUserCharset(message.data), yesno)
         # ugly, isn't it ?
         while self.frame.dialogAnswer is None :
             time.sleep(0.1)
-        retcode = self.frame.dialogAnswer    
+        retcode = self.frame.dialogAnswer
         self.frame.dialogAnswer = None # prepare for next call, just in case
         return retcode
-        
-    def export_nop(self) :    
+
+    def export_nop(self) :
         """Does nothing, but allows a clean shutdown from the frame itself."""
         return True
-        
-    def _dispatch(self, method, params) :    
+
+    def _dispatch(self, method, params) :
         """Ensure that only export_* methods are available."""
         return getattr(self, "export_%s" % method)(*params)
-        
-    def handle_error(self, request, client_address) :    
+
+    def handle_error(self, request, client_address) :
         """Doesn't display an ugly traceback in case an error occurs."""
         self.logDebug("An exception occured while handling an incoming request from %s:%s" % (client_address[0], client_address[1]))
-        
+
     def verify_request(self, request, client_address) :
         """Ensures that requests which don't come from the print server are rejected."""
         (client, port) = client_address
@@ -203,7 +203,7 @@ class MyXMLRPCServer(ThreadedXMLRPCServer) :
             # Unauthorized access !
             self.logDebug("%s rejected." % client)
             return False
-        
+
     def mainloop(self) :
         """XML-RPC Server's main loop."""
         self.register_function(self.export_askDatas)
@@ -212,10 +212,10 @@ class MyXMLRPCServer(ThreadedXMLRPCServer) :
         self.register_function(self.export_nop)
         while not self.frame.quitEvent.isSet() :
             self.handle_request()
-        self.server_close()    
+        self.server_close()
         sys.exit(0)
-    
-    
+
+
 class GenericInputDialog(wx.Dialog) :
     """Generic input dialog box."""
     def __init__(self, parent, id, labels, varnames, varvalues):
@@ -232,30 +232,30 @@ class GenericInputDialog(wx.Dialog) :
             varname = varnames[i]
             try :
                 label = labels[i]
-            except IndexError :    
+            except IndexError :
                 label = ""
-            labelid = wx.NewId()    
+            labelid = wx.NewId()
             varid = wx.NewId()
             labelst = wx.StaticText(self, labelid, label)
             if varname.lower().find("password") != -1 :
                 variable = wx.TextCtrl(self, varid, varvalues.get(varname, ""), style=wx.TE_PASSWORD)
             else :
                 variable = wx.TextCtrl(self, varid, varvalues.get(varname, ""))
-            self.variables.append(variable)    
+            self.variables.append(variable)
             hsizer = wx.BoxSizer(wx.HORIZONTAL)
             hsizer.Add(labelst, 0, wx.ALIGN_CENTER | wx.ALIGN_RIGHT | wx.ALL, 5)
             hsizer.Add(variable, 0, wx.ALIGN_CENTER | wx.ALIGN_LEFT | wx.ALL, 5)
             vsizer.Add(hsizer, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-            
-        okbutton = wx.Button(self, wx.ID_OK, "OK")    
+
+        okbutton = wx.Button(self, wx.ID_OK, "OK")
         vsizer.Add(okbutton, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         if self.variables :
             self.variables[0].SetFocus()
         self.SetAutoLayout(True)
         self.SetSizerAndFit(vsizer)
         self.Layout()
-        
-        
+
+
 class PyKotIcon(wx.Frame):
     """Main class."""
     def __init__(self, parent, id):
@@ -264,17 +264,17 @@ class PyKotIcon(wx.Frame):
                _("PyKotIcon info for %s") % self.getCurrentUserName(), \
                size = (0, 0), \
                style = wx.FRAME_NO_TASKBAR | wx.NO_FULL_REPAINT_ON_RESIZE)
-                     
+
     def getCurrentUserName(self) :
         """Retrieves the current user's name."""
         try :
             if isWindows :
                 return win32api.GetUserName()
-            else :    
+            else :
                 return pwd.getpwuid(os.geteuid())[0]
         except :
             return "** Unknown **"
-            
+
     def OnIconify(self, event) :
         """Iconify/De-iconify the application."""
         if not self.IsIconized() :
@@ -298,7 +298,7 @@ class PyKotIcon(wx.Frame):
             self.tbicon.Destroy()
             self.Destroy()
             return True
-        else :    
+        else :
             # self.quitIsForbidden()
             return False
 
@@ -309,8 +309,8 @@ class PyKotIcon(wx.Frame):
     def OnTaskBarClose(self, event) :
         """React to close from the taskbar."""
         self.Close()
-            
-    def quitIsForbidden(self) :        
+
+    def quitIsForbidden(self) :
         """Displays a message indicating that quitting the application is not allowed."""
         message = _("Sorry, this was forbidden by your system administrator.")
         caption = _("Information")
@@ -318,16 +318,16 @@ class PyKotIcon(wx.Frame):
         dialog = wx.MessageDialog(self, message, caption, style)
         dialog.ShowModal()
         dialog.Destroy()
-        
-    def OnAbout(self, event) :    
+
+    def OnAbout(self, event) :
         """Displays the about box."""
         dialog = wx.MessageDialog(self, aboutbox % globals(), \
                                         _("About"), \
                                         wx.OK | wx.ICON_INFORMATION)
-        dialog.Raise()                                        
+        dialog.Raise()
         dialog.ShowModal()
         dialog.Destroy()
-        
+
     def showDialog(self, message, yesno) :
         """Opens a notification dialog."""
         self.dialogAnswer = None
@@ -337,12 +337,12 @@ class PyKotIcon(wx.Frame):
         else :
             caption = _("Information")
             style = wx.OK | wx.ICON_INFORMATION
-        style |= wx.STAY_ON_TOP    
+        style |= wx.STAY_ON_TOP
         dialog = wx.MessageDialog(self, message, caption, style)
         dialog.Raise()
         self.dialogAnswer = ((dialog.ShowModal() == wx.ID_NO) and "CANCEL") or "OK"
         dialog.Destroy()
-        
+
     def askDatas(self, labels, varnames, varvalues) :
         """Opens a dialog box asking for data entry."""
         self.dialogAnswer = None
@@ -353,42 +353,42 @@ class PyKotIcon(wx.Frame):
             retvalues["isValid"] = True
             for i in range(len(varnames)) :
                 retvalues[varnames[i]] = dialog.variables[i].GetValue()
-        else :        
+        else :
             retvalues["isValid"] = False
             for k in varvalues.keys() :
                 retvalues[k] = ""
         self.dialogAnswer = retvalues
         dialog.Destroy()
-        
-    def closeServer(self) :    
+
+    def closeServer(self) :
         """Tells the xml-rpc server to exit."""
         if not self.quitEvent.isSet() :
             self.quitEvent.set()
-        server = xmlrpclib.ServerProxy("http://localhost:%s" % self.options.port)    
+        server = xmlrpclib.ServerProxy("http://localhost:%s" % self.options.port)
         try :
-            # wake the server with an empty request 
+            # wake the server with an empty request
             # for it to see the event object
             # which has just been set
             server.nop()
-        except :    
+        except :
             # Probably already stopped
             pass
-        
-    def postInit(self, charset, options, arguments) :    
+
+    def postInit(self, charset, options, arguments) :
         """Starts the XML-RPC server."""
         self.charset = charset
         self.options = options
-        
+
         self.tbicon = wx.TaskBarIcon()
         self.greenicon = wx.Icon(os.path.join(iconsdir, "pykoticon-green.ico"), \
                                   wx.BITMAP_TYPE_ICO)
         self.redicon = wx.Icon(os.path.join(iconsdir, "pykoticon-red.ico"), \
                                   wx.BITMAP_TYPE_ICO)
         self.tbicon.SetIcon(self.greenicon, "PyKotIcon")
-        
+
         wx.EVT_TASKBAR_LEFT_DCLICK(self.tbicon, self.OnTaskBarActivate)
         wx.EVT_TASKBAR_RIGHT_UP(self.tbicon, self.OnTaskBarMenu)
-        
+
         self.TBMENU_ABOUT = wx.NewId()
         self.TBMENU_RESTORE = wx.NewId()
         self.TBMENU_CLOSE = wx.NewId()
@@ -407,23 +407,23 @@ class PyKotIcon(wx.Frame):
         wx.EVT_CLOSE(self, self.OnClose)
         self.Show(True)
         self.Hide()
-        
+
         self.quitEvent = threading.Event()
         self.server = MyXMLRPCServer(self, options, arguments)
-        
+
     def UTF8ToUserCharset(self, text) :
         """Converts from UTF-8 to user's charset."""
         if text is not None :
             try :
-                return text.decode("UTF-8").encode(self.charset, "replace") 
-            except (UnicodeError, AttributeError) :    
+                return text.decode("UTF-8").encode(self.charset, "replace")
+            except (UnicodeError, AttributeError) :
                 try :
                     # Maybe already in Unicode
-                    return text.encode(self.charset, "replace") 
+                    return text.encode(self.charset, "replace")
                 except (UnicodeError, AttributeError) :
                     pass # Don't know what to do
         return text
-        
+
     def userCharsetToUTF8(self, text) :
         """Converts from user's charset to UTF-8."""
         if text is not None :
@@ -431,15 +431,15 @@ class PyKotIcon(wx.Frame):
                 return text.decode(self.charset).encode("UTF-8")
             except (UnicodeError, AttributeError) :
                 try :
-                    return text.decode(self.charset, "replace").encode("UTF-8") 
-                except (UnicodeError, AttributeError) :    
+                    return text.decode(self.charset, "replace").encode("UTF-8")
+                except (UnicodeError, AttributeError) :
                     try :
                         # Maybe already in Unicode
-                        return text.encode("UTF-8", "replace") 
+                        return text.encode("UTF-8", "replace")
                     except (UnicodeError, AttributeError) :
                         pass # Don't know what to do
         return text
-        
+
 
 class PyKotIconApp(wx.App):
     def OnInit(self) :
@@ -447,12 +447,12 @@ class PyKotIconApp(wx.App):
         self.frame.Show(False)
         self.SetTopWindow(self.frame)
         return True
-        
-    def postInit(self, charset, options, arguments) :    
+
+    def postInit(self, charset, options, arguments) :
         """Continues processing."""
         self.frame.postInit(charset, options, arguments)
-        
-        
+
+
 def main() :
     """Program's entry point."""
     # locale stuff
@@ -463,7 +463,7 @@ def main() :
     (language, charset) = locale.getlocale()
     language = language or "C"
     charset = ((sys.platform != "win32") and charset) or locale.getpreferredencoding()
-    
+
     # translation stuff
     try :
         try :
@@ -473,29 +473,29 @@ def main() :
         trans.install()
     except :
         gettext.NullTranslations().install()
-    
-    
+
+
     parser = optparse.OptionParser(usage="pykoticon [options] server1 [server2 ...]")
-    parser.add_option("-v", "--version", 
-                            action="store_true", 
+    parser.add_option("-v", "--version",
+                            action="store_true",
                             dest="version",
                             help=_("show PyKotIcon's version number and exit."))
-    parser.add_option("-c", "--cache", 
-                            type="int", 
-                            default=0, 
+    parser.add_option("-c", "--cache",
+                            type="int",
+                            default=0,
                             dest="cache",
                             help=_("the duration of the cache in seconds to keep input forms' datas in memory. Defaults to 0 second, meaning no cache."))
-    parser.add_option("-d", "--debug", 
-                            action="store_true", 
+    parser.add_option("-d", "--debug",
+                            action="store_true",
                             dest="debug",
                             help=_("activate debug mode."))
-    parser.add_option("-p", "--port", 
-                            type="int", 
-                            default=7654, 
+    parser.add_option("-p", "--port",
+                            type="int",
+                            default=7654,
                             dest="port",
                             help=_("the TCP port PyKotIcon will listen to, default is 7654."))
-    parser.add_option("-q", "--allowquit", 
-                            action="store_true", 
+    parser.add_option("-q", "--allowquit",
+                            action="store_true",
                             dest="allowquit",
                             help=_("allow the end user to close the application."))
     (options, arguments) = parser.parse_args()
@@ -504,14 +504,14 @@ def main() :
     else :
         if not (1024 <= options.port <= 65535) :
             sys.stderr.write(_("The TCP port number specified for --port must be between 1024 and 65535.\n"))
-        elif not (0 <= options.cache <= 86400) :    
+        elif not (0 <= options.cache <= 86400) :
             sys.stderr.write(_("The duration specified for --cache must be between 0 and 86400 seconds.\n"))
-        else :    
+        else :
             app = PyKotIconApp()
             app.postInit(charset, options, arguments)
             app.MainLoop()
-    
-    
+
+
 if __name__ == '__main__':
     main()
-    
+

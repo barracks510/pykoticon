@@ -21,21 +21,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 TODO, in no particular order :
 
-    - Add a way to provide an additional text when using 
+    - Add a way to provide an additional text when using
       pknotify --ask.
-      
-    - Don't display anything or even initialize the graphical interface  
+
+    - Don't display anything or even initialize the graphical interface
       until an incoming connection is received : this will allow
       a single instance to be launched and choose its display
       at connection time for use on terminal servers.
-      
-    - Add a command line parameter to control the window's modal/modeless  
+
+    - Add a command line parameter to control the window's modal/modeless
       mode. The default will not be modal in any case.
-      
+
     - SSL or other encryption support.
-    
+
     - Fix focus problem reported by some people.
-    
+
 ============================================================
 
 Please e-mail bugs to: alet@librelogiciel.com (Jerome Alet)
