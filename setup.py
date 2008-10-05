@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# -*- coding: ISO-8859-15 -*-
+# -*- coding: iso-8859-15 -*-
 
 """Packaging and installation script for PyKotIcon."""
 
@@ -15,7 +15,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
@@ -35,19 +35,19 @@ except ImportError :
     if sys.platform == "win32" :
         sys.stderr.write("py2exe is not installed ! ABORTING.\n")
         sys.exit(-1)
-    else :    
+    else :
         directory = os.sep.join(["share", "pykoticon"])
         mandir = os.sep.join(["share", "man", "man1"])
-        manpages = glob.glob(os.sep.join(["man", "*.1"]))    
+        manpages = glob.glob(os.sep.join(["man", "*.1"]))
         initialdatafiles = [(mandir, manpages)]
         withPy2EXE = False
-else :        
+else :
     directory = "."
     initialdatafiles = []
     withPy2EXE = True
 
 config = imp.load_source("config", os.path.join("bin", "pykoticon"))
-setupDictionary = { "name" : "pykoticon", 
+setupDictionary = { "name" : "pykoticon",
                     "version" : config.__version__,
                     "license" : config.__license__,
                     "description" : config.__doc__,

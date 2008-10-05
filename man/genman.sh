@@ -13,8 +13,8 @@
 #
 # $Id$
 #
-for prog in pykoticon ; do 
+for prog in pykoticon ; do
     echo $prog ;
-    help2man --no-info --section=1 --manual "User Commands" --source="C@LL - Conseil Internet & Logiciels Libres" --output=$prog.1 $prog ; 
+    help2man --no-info --section=1 --manual "User Commands" --source="C@LL - Conseil Internet & Logiciels Libres" --output=$prog.1 $prog ;
     echo ;
 done
