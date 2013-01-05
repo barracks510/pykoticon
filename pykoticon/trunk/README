@@ -38,8 +38,8 @@ Installation :
     starts.
 
     You MUST pass the list of hostnames or IP addresses from which
-    PyKotIcon should accept incoming connexions on pykoticon's
-    command line. Connexions from localhost are always accepted.
+    PyKotIcon should accept incoming connections on pykoticon's
+    command line. Connections from localhost are always accepted.
     If you use PyKotIcon with PyKota, you'll want to pass the
     hostnames or IP addresses of ALL print servers on pykoticon's
     command line.
@@ -174,7 +174,7 @@ Usage :
             anyway.
 
 
-IMPORTANT : PyKotIcon doesn't currently support encrypted connexions,
+IMPORTANT : PyKotIcon doesn't currently support encrypted connections,
 so if you're afraid of sensitive information flying in the clear
 over the nework, you should probably install a transparent secure
 tunneling software like stunnel on both sides of each connection.
